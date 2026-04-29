@@ -33,7 +33,8 @@ operator-core-schemas/
         ├── 0001-backpack-is-active-carry-state.md
         ├── 0002-doctrine-vs-hoard.md
         ├── 0003-renderers-over-one-truth-layer.md
-        └── 0004-consent-posture-is-doctrine.md
+        ├── 0004-consent-posture-is-doctrine.md
+        └── 0005-voice-rules-and-routing-rules.md
 ```
 
 ## Roadmap status
@@ -44,7 +45,7 @@ operator-core-schemas/
 | [Phase 1](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-1--define-the-substrate) — define substrate | **done** | 8 schemas in `schemas/` |
 | [Phase 2](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-2--add-examples) — add examples | **done** | examples + renderer outputs + ingestion trace |
 | [Phase 3](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-3--define-ingestion-pathways) — define ingestion | **done** | 6 docs + ingestion-event schema |
-| Phase 4 — renderer prototypes | **in progress** | 5 renderers shipped: session-primer, daily-brief, statusline, narrator-list (template), narrator-brief (prompt) |
+| [Phase 4](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-4--build-the-first-renderer-prototypes) — renderer prototypes | **done** (2026-04-29) | 5 renderers + two-tier goldens + energy-routing test; upstream ROADMAP bumped via [PR #1](https://github.com/snackdriven/operator-core-mini/pull/1) |
 | Phase 5 — evaluate and prune | not started | |
 
 ## Start here
