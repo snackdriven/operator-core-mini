@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/renderer-hints.schema.json",
+  "title": "RendererHints",
+  "description": "Optional metadata attached to any item (Backpack, Doctrine, or Hoard) that tells renderers how the item is allowed to surface. Renderers MAY ignore hints, but SHOULD respect 'never_surface_in' and 'requires_consent'.",
+  "type": "object",
+  "properties": {
+    "surfaces": {
+      "type": "array",
+      "description": "Renderers this item is appropriate for.",
+      "items": { "$ref": "#/$defs/SurfaceId" },
+      "uniqueItems": true
+    },
+    "never_surface_in": {
+      "type": "array",
+      "description": "Renderers that MUST NOT include this item.",
+      "items": { "$ref": "#/$defs/SurfaceId" },
+      "uniqueItems": true
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Higher = more likely to be surfaced when budget is tight."
+    },
+    "max_chars_in": {
+      "type": "object",
+      "description": "Per-renderer character budget for inclusion.",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "tone_constraints": {
+      "type": "array",
+      "description": "Tones this item should NOT be reframed into.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "preferred_narrators": {
+      "type": "array",
+      "description": "Narrator role/skin ids this item reads well in.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "requires_consent": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, renderers must check an explicit user-consent flag before surfacing (e.g. health, mood, sensitive history)."
+    },
+    "decay": {
+      "type": "string",
+      "enum": ["never", "fade", "drop"],
+      "description": "Whether the item should fade in priority or drop from rendering as it ages, independent of TTL.",
+      "default": "fade"
+    },
+    "ambient_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, only ambient renderers (statusline, HUD) should surface it; never push as an alert."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "SurfaceId": {
+      "type": "string",
+      "description": "Renderer/surface identifier. Reserved canonical ids; custom ids allowed.",
+      "examples": [
+        "dashboard",
+        "narrator",
+        "statusline",
+        "session-primer",
+        "daily-brief",
+        "journal",
+        "weather"
+      ]
+    }
+  }
+}

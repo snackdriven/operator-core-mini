@@ -1,0 +1,82 @@
+{
+  "version": "0.1.0",
+  "updated_at": "2026-04-29T14:00:00Z",
+  "entries": [
+    {
+      "id": "user-profile",
+      "kind": "identity",
+      "title": "User profile",
+      "body": "Kayla. QA at Tebra/NHHA. Based in Bentonville, AR. AUDHD/PDA-aware support style. Married, post-wedding. Prefers ambient, low-demand surfaces.",
+      "pinned": true,
+      "stability": "stable",
+      "tags": ["identity"],
+      "renderer_hints": {
+        "surfaces": ["session-primer", "narrator"],
+        "priority": 100,
+        "requires_consent": false
+      }
+    },
+    {
+      "id": "writing-preferences",
+      "kind": "default",
+      "title": "Writing preferences",
+      "body": "Plain language. Dated entries. No exclamation points. Short paragraphs. Lists over prose when items are parallel. Markdown headers under six words.",
+      "pinned": true,
+      "applies_to": ["narrator", "daily-brief", "session-primer"]
+    },
+    {
+      "id": "qa-bug-investigation-protocol",
+      "kind": "workflow",
+      "title": "Default bug investigation protocol",
+      "body": "Reproduce locally, capture seed data, check Sentry for prior occurrences, diff against last known good build, file findings in TTOAD with reproduction steps before commenting on the PR.",
+      "pinned": true,
+      "tags": ["qa", "workflow"]
+    },
+    {
+      "id": "narrator-low-energy-routing",
+      "kind": "routing-rule",
+      "title": "Route to low-demand narrator on bad-brain days",
+      "body": "When the day is flagged low-energy or bad-brain, prefer narrators with comic or warm tone over critical or analytic tones. Never reframe medical or health entries comically.",
+      "routing": {
+        "when": "mood=low OR energy=low",
+        "narrator": "good-place",
+        "tone": "low-demand"
+      },
+      "applies_to": ["narrator"]
+    },
+    {
+      "id": "github-source-of-truth",
+      "kind": "policy",
+      "title": "GitHub is the source of truth",
+      "body": "When backpack and a repo disagree about state, the repo wins. Update Backpack in place to match.",
+      "pinned": true
+    },
+    {
+      "id": "vocab-backpack-doctrine-hoard",
+      "kind": "vocabulary",
+      "title": "Memory ecology terms",
+      "body": "Backpack = active carry-state. Doctrine = stable truths. Hoard = deep archive. Renderers = surfaces that read from these three layers.",
+      "stability": "stable",
+      "review_cadence_days": 365
+    },
+    {
+      "id": "team-roster",
+      "kind": "evergreen-reference",
+      "title": "Team roster",
+      "body": "Jamie — eng lead, NHHA. Ishan — eng lead, RCM (he/him). Reorg-on-call — rotating weekly. Update in place when roles change; do not append.",
+      "pinned": true,
+      "stability": "evolving",
+      "review_cadence_days": 90,
+      "tags": ["team", "reference"]
+    },
+    {
+      "id": "jira-boards",
+      "kind": "evergreen-reference",
+      "title": "Jira boards in active use",
+      "body": "TTOAD = primary QA board (post-migration key). NHHA-RCM = release tracking. Old keys (SQDTOAD, etc.) preserved for historical search; do not file new tickets there.",
+      "pinned": true,
+      "stability": "stable",
+      "tags": ["jira", "reference"]
+    }
+  ]
+}

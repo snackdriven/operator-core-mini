@@ -1,0 +1,15 @@
+{
+  "id": "narrator-low-energy-routing",
+  "kind": "routing-rule",
+  "title": "Route to low-demand narrator on bad-brain days",
+  "body": "When the day is flagged low-energy or bad-brain, prefer narrators with comic or warm tone over critical or analytic tones. Never reframe medical or health entries comically.",
+  "routing": {
+    "when": "mood=low OR energy=low",
+    "narrator": "good-place",
+    "tone": "low-demand"
+  },
+  "applies_to": ["narrator"],
+  "pinned": true,
+  "stability": "stable",
+  "created_at": "2026-04-29T14:00:00Z"
+}

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/freshness-policy.schema.json",
+  "title": "FreshnessPolicy",
+  "description": "Declarative rules for how Backpack items age, when they must be re-verified, when they are replaced in place, and how renderers should treat them. Captures the rules currently expressed in prose inside backpack-freshness-guide.",
+  "type": "object",
+  "required": ["version", "bands", "rules"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "bands": {
+      "type": "array",
+      "description": "Ordered freshness bands from freshest to stalest. Each band defines an age window and how renderers should treat items within it.",
+      "items": { "$ref": "#/$defs/FreshnessBand" }
+    },
+    "rules": {
+      "type": "object",
+      "required": ["verify_after_days", "require_dated_entries", "update_in_place"],
+      "properties": {
+        "verify_after_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "If an item is older than this and being used to inform action, the system should re-verify before acting on specifics. Currently 7 in practice."
+        },
+        "require_dated_entries": {
+          "type": "boolean",
+          "description": "Every Backpack item must have an explicit YYYY-MM-DD date in either the key or the first line of the value."
+        },
+        "update_in_place": {
+          "type": "boolean",
+          "description": "When session work makes an entry stale, update it in place rather than appending new versions."
+        },
+        "patterns_age_slower_than_tactics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Cultural and pattern context aged slower than tactical details (ticket statuses, PR states, ownership)."
+        },
+        "promote_to_doctrine_after_days": {
+          "type": "integer",
+          "description": "Optional. If a Backpack item survives this many days unchanged, consider promoting it to Doctrine."
+        },
+        "demote_to_hoard_after_days": {
+          "type": "integer",
+          "description": "Optional. If a Backpack item ages past this without being touched, archive it to Hoard."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ttl_presets": {
+      "type": "object",
+      "description": "Named TTLs in seconds, used by ingestion to choose sane defaults.",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "examples": [
+        {
+          "snapshot": 604800,
+          "tactical": 1209600,
+          "fix-thread": 2592000,
+          "quarter": 7776000
+        }
+      ]
+    },
+    "pinned_keys": {
+      "type": "array",
+      "description": "Default pinned keys mirroring _config:pinned_keys, for use when a fresh Backpack is initialized.",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "FreshnessBand": {
+      "type": "object",
+      "required": ["name", "max_age_days", "treatment"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": ["current", "recent", "contextual", "historical", "evergreen"]
+        },
+        "max_age_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Upper bound of this band in days from the entry's dated timestamp. Use a very large value (e.g. 36500) for evergreen."
+        },
+        "treatment": {
+          "type": "string",
+          "description": "How renderers and consumers should treat items in this band.",
+          "enum": [
+            "trust",
+            "mostly-reliable-verify-specifics",
+            "good-for-patterns-verify-details",
+            "culture-pattern-only",
+            "refresh-periodically"
+          ]
+        },
+        "renderer_priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Default surfacing priority for items in this band."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

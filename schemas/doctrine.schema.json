@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/doctrine.schema.json",
+  "title": "Doctrine",
+  "description": "Stable truths, defaults, identity, workflows, and routing rules. Persistent, pinned, low-churn, cross-session. Aggregate document wrapping an array of DoctrineEntry items (each validates against doctrine-entry.schema.json). Doctrine answers: what remains true across sessions? It protects against drift.",
+  "type": "object",
+  "required": ["version", "entries"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "doctrine-entry.schema.json#" }
+    }
+  },
+  "additionalProperties": false
+}

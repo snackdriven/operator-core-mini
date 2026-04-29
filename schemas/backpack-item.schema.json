@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/backpack-item.schema.json",
+  "title": "BackpackItem",
+  "description": "A single Backpack entry. Use this schema to validate one item in isolation — for example a markdown file's YAML frontmatter, or a single record produced by ingestion. Two shapes are accepted: a raw natural-language string (matching legacy backpack.json practice) or a structured object that decorates the same content with explicit metadata. Per the freshness rules, every item MUST encode a YYYY-MM-DD date — either in the key it lives under or in the first line of the value/body.",
+  "oneOf": [
+    {
+      "type": "string",
+      "minLength": 1,
+      "description": "Raw natural-language entry. First line should contain a YYYY-MM-DD date. Update in place when the underlying truth changes; do not append history."
+    },
+    {
+      "type": "object",
+      "required": ["value", "freshness_class"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "description": "Stable kebab-case id. Required when the item is stored as a standalone file (frontmatter), optional when keyed in a parent object."
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The actual carry-state content. Plain text or markdown. First line should still encode the date."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Optional one-line synopsis used by renderers (statusline, daily brief)."
+        },
+        "freshness_class": { "$ref": "#/$defs/FreshnessClass" },
+        "memory_class": { "$ref": "#/$defs/MemoryClass" },
+        "scope": { "$ref": "#/$defs/Scope" },
+        "source": { "$ref": "#/$defs/Source" },
+        "dated": {
+          "type": "string",
+          "format": "date",
+          "description": "The YYYY-MM-DD the entry refers to. Required if not encoded in the id/key."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the item was created or last replaced in place. Mirrors _config:ttl[*].created_at in the legacy file."
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lifetime in seconds before the item should be re-verified or aged out. Common presets: 604800 (1w), 1209600 (2w), 2592000 (30d), 7776000 (90d)."
+        },
+        "review_after": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional explicit review checkpoint, used when freshness is calendar-driven."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "renderer_hints": { "$ref": "renderer-hints.schema.json#" },
+        "doctrine_ref": {
+          "type": "string",
+          "description": "Optional id of a Doctrine entry this item implements or depends on."
+        },
+        "hoard_refs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional ids of Hoard entries this item summarizes or was promoted from."
+        },
+        "replaces": {
+          "type": "string",
+          "description": "Id of a prior Backpack entry this one supersedes."
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "FreshnessClass": {
+      "type": "string",
+      "enum": [
+        "current",
+        "recent",
+        "contextual",
+        "historical",
+        "evergreen",
+        "pinned",
+        "removed"
+      ]
+    },
+    "MemoryClass": {
+      "type": "string",
+      "enum": [
+        "pinned-doctrine",
+        "expiring-tactical",
+        "timeline",
+        "evergreen-reference",
+        "replaceable-truth"
+      ]
+    },
+    "Scope": {
+      "type": "string",
+      "enum": ["work", "life", "assistant", "identity", "meta"]
+    },
+    "Source": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["scratch-pad", "narrator", "qa-brain", "journal", "transcript", "manual", "import", "other"]
+        },
+        "ref": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/doctrine-entry.schema.json",
+  "title": "DoctrineEntry",
+  "description": "A single Doctrine entry. Use this schema to validate one entry in isolation — for example a markdown file's YAML frontmatter under doctrine/. The aggregate Doctrine document (doctrine.schema.json) wraps an array of these.",
+  "type": "object",
+  "required": ["id", "kind", "title", "body"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Stable kebab-case id. Doctrine ids should not change once published; rename via 'replaces'."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "identity",
+        "default",
+        "workflow",
+        "routing-rule",
+        "evergreen-reference",
+        "policy",
+        "vocabulary"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "body": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Markdown content. Should remain low-churn; if churn is high, the entry probably belongs in Backpack instead."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "applies_to": {
+      "type": "array",
+      "description": "Renderer or surface ids this entry should govern.",
+      "items": { "type": "string" }
+    },
+    "routing": {
+      "type": "object",
+      "description": "Optional routing rules, used when kind = 'routing-rule'.",
+      "properties": {
+        "when": { "type": "string" },
+        "prefer_renderer": { "type": "string" },
+        "narrator": { "type": "string" },
+        "tone": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "pinned": { "type": "boolean", "default": true },
+    "stability": {
+      "type": "string",
+      "enum": ["stable", "evolving", "deprecated"],
+      "default": "stable"
+    },
+    "review_cadence_days": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "replaces": {
+      "type": "string",
+      "description": "Id of a prior doctrine entry this one supersedes."
+    },
+    "sources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Hoard ids, file paths, or URLs where the truth originates."
+    },
+    "renderer_hints": { "$ref": "renderer-hints.schema.json#" }
+  },
+  "additionalProperties": false
+}

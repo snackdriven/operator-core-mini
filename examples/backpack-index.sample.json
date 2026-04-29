@@ -1,0 +1,36 @@
+{
+  "kind": "backpack-index",
+  "version": "0.1.0",
+  "generated_at": "2026-04-29T16:00:00Z",
+  "source_commit": "a1b2c3d4e5f6",
+  "source_root": "backpack/",
+  "pinned_keys": [
+    "default-bug-investigation-protocol",
+    "writing-preferences"
+  ],
+  "items": {
+    "meetings-2026-04-29-q2-roadmap": {
+      "id": "meetings-2026-04-29-q2-roadmap",
+      "value": "2026-04-29 — Q2 roadmap sync: scope locked for May.",
+      "freshness_class": "current",
+      "memory_class": "expiring-tactical",
+      "scope": "work",
+      "dated": "2026-04-29",
+      "created_at": "2026-04-29T15:30:00Z",
+      "ttl_seconds": 1209600
+    },
+    "writing-preferences": {
+      "id": "writing-preferences",
+      "value": "Plain language. Dated entries. No exclamation points.",
+      "freshness_class": "evergreen",
+      "memory_class": "evergreen-reference",
+      "scope": "identity"
+    }
+  },
+  "stats": {
+    "count": 2,
+    "by_freshness": { "current": 1, "evergreen": 1 },
+    "by_scope": { "work": 1, "identity": 1 },
+    "stale_count": 0
+  }
+}

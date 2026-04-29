@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/index.schema.json",
+  "title": "GeneratedIndex",
+  "description": "Schema for the generated, single-shot read snapshots that renderers consume — for example backpack/_index.json or doctrine/doctrine.lock.json. These files are MACHINE-WRITTEN by a build step and SHOULD NOT be hand-edited; the per-file markdown frontmatter is the source of truth. The index exists so narrator, statusline, daily-brief, and Claude bootstraps can keep doing one read.",
+  "type": "object",
+  "required": ["kind", "generated_at", "items"],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["backpack-index", "doctrine-index", "hoard-index"],
+      "description": "Which layer this index represents."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver of the index format itself."
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "source_commit": {
+      "type": "string",
+      "description": "Optional git SHA of the source tree this index was built from. Lets renderers detect drift."
+    },
+    "source_root": {
+      "type": "string",
+      "description": "Optional path to the source tree (e.g. 'backpack/')."
+    },
+    "pinned_keys": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Convenience copy of pinned ids, mirroring legacy _config:pinned_keys for backpack-index."
+    },
+    "items": {
+      "description": "The materialized layer. Object-of-id form preserves backpack.json compatibility; array form is also accepted.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Map of id -> item. Each value matches the corresponding per-item schema (backpack-item.schema.json or doctrine-entry.schema.json or hoard-item.schema.json)."
+        },
+        {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      ]
+    },
+    "stats": {
+      "type": "object",
+      "description": "Optional build-time stats useful for diagnostics.",
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "by_freshness": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "by_scope": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "stale_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

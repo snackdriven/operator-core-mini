@@ -1,0 +1,31 @@
+{
+  "version": "0.1.0",
+  "updated_at": "2026-04-29T14:00:00Z",
+  "bands": [
+    { "name": "current",    "max_age_days": 1,     "treatment": "trust",                            "renderer_priority": 90 },
+    { "name": "recent",     "max_age_days": 7,     "treatment": "mostly-reliable-verify-specifics", "renderer_priority": 70 },
+    { "name": "contextual", "max_age_days": 28,    "treatment": "good-for-patterns-verify-details", "renderer_priority": 50 },
+    { "name": "historical", "max_age_days": 120,   "treatment": "culture-pattern-only",             "renderer_priority": 25 },
+    { "name": "evergreen",  "max_age_days": 36500, "treatment": "refresh-periodically",             "renderer_priority": 60 }
+  ],
+  "rules": {
+    "verify_after_days": 7,
+    "require_dated_entries": true,
+    "update_in_place": true,
+    "patterns_age_slower_than_tactics": true,
+    "promote_to_doctrine_after_days": 90,
+    "demote_to_hoard_after_days": 60
+  },
+  "ttl_presets": {
+    "snapshot": 604800,
+    "tactical": 1209600,
+    "fix-thread": 2592000,
+    "quarter": 7776000
+  },
+  "pinned_keys": [
+    "default-bug-investigation-protocol",
+    "qa-vs-code-review-distinction",
+    "writing-preferences",
+    "user-profile"
+  ]
+}

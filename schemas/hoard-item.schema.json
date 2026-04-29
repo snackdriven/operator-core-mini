@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/hoard-item.schema.json",
+  "title": "HoardItem",
+  "description": "A single record in the Hoard. Append-heavy, searchable, indexable, not required to be tidy. Hoard answers the question: what should not be lost, even if it is not active? It protects against loss. Hoard files SHOULD be stored as JSONL where each line validates against this schema.",
+  "type": "object",
+  "required": ["id", "kind", "captured_at", "content"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Globally stable id. ULID or UUID recommended; kebab-case allowed for hand-curated entries.",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "transcript",
+        "transcript-summary",
+        "note",
+        "scrap",
+        "screenshot",
+        "artifact",
+        "timeline-event",
+        "imported-memory",
+        "session-summary",
+        "journal-entry",
+        "log",
+        "other"
+      ]
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the item was captured into the Hoard."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the underlying event actually happened, if different from captured_at."
+    },
+    "title": { "type": "string" },
+    "content": {
+      "type": "string",
+      "description": "Primary content. Plain text or markdown. For binary artifacts use 'attachment' instead."
+    },
+    "attachment": {
+      "type": "object",
+      "description": "Pointer to a file held outside the Hoard index (image, audio, pdf, raw transcript).",
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string" },
+        "mime_type": { "type": "string" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["work", "life", "assistant", "identity", "meta"]
+    },
+    "source": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["scratch-pad", "narrator", "qa-brain", "journal", "transcript", "manual", "import", "other"]
+        },
+        "ref": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "people": {
+      "type": "array",
+      "description": "People mentioned or involved.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "projects": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "promoted_to_backpack": {
+      "type": "string",
+      "description": "Optional Backpack key this Hoard item was promoted into. Lets renderers walk back from carry-state to source."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short summary used by retrieval and renderers."
+    },
+    "embedding_ref": {
+      "type": "string",
+      "description": "Optional pointer to a vector index entry for similarity search."
+    },
+    "redactions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Names of redacted spans (e.g. 'pii', 'health'). The redacted text is removed from content; this field records what was removed and why."
+    },
+    "renderer_hints": {
+      "$ref": "renderer-hints.schema.json#"
+    }
+  },
+  "additionalProperties": false
+}

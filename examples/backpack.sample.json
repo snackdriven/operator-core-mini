@@ -1,0 +1,92 @@
+{
+  "_config:pinned_keys": "[\"default-bug-investigation-protocol\", \"qa-vs-code-review-distinction\", \"draft-defaults-2026-04\", \"writing-preferences\", \"user-profile\", \"github-source-of-truth\"]",
+  "_config:ttl": "{\"qa-queue-snapshot-2026-04-29\": {\"created_at\": \"2026-04-29T14:00:00+00:00\", \"ttl_seconds\": 604800}, \"meetings-2026-04-29-q2-roadmap\": {\"created_at\": \"2026-04-29T15:30:00+00:00\", \"ttl_seconds\": 1209600, \"replaces\": \"meetings-2026-04-06-q2-roadmap\"}, \"nhha-rcm-active-board-2026-04-29\": {\"created_at\": \"2026-04-29T13:00:00+00:00\", \"ttl_seconds\": 1209600, \"replaces\": \"nhha-rcm-active-board-4-2\"}, \"ttoad-367-final-results\": {\"created_at\": \"2026-04-22T22:50:00+00:00\", \"ttl_seconds\": 1209600}, \"bug-referral-setup-2026-04-09\": {\"created_at\": \"2026-04-09T15:37:28+00:00\", \"ttl_seconds\": 604800}, \"april-2026-timeline\": {\"created_at\": \"2026-04-29T08:00:00+00:00\", \"ttl_seconds\": 7776000}}",
+
+  "qa-queue-snapshot-2026-04-29": "2026-04-29 — QA queue: 4 in-flight TTOAD tickets (367, 221, 19, 51). 367 in code review with auth audit findings applied; 221 discharge filter awaiting verification; 19 dup found for CCC Heber billing; 51 site mapping verified upstream. No fast-follow blockers.",
+
+  "meetings-2026-04-29-q2-roadmap": {
+    "value": "2026-04-29 — Q2 roadmap sync: scope locked for May, NHHA RCM phase 2 deferred to June, jira board migration cleanup carried over from April. Misnamed PR detection follow-up still unowned.",
+    "summary": "Q2 sync; NHHA RCM phase 2 → June.",
+    "freshness_class": "current",
+    "memory_class": "expiring-tactical",
+    "scope": "work",
+    "source": { "kind": "scratch-pad", "ref": "dailies/2026-04-29.md" },
+    "dated": "2026-04-29",
+    "tags": ["q2", "roadmap", "nhha"],
+    "renderer_hints": { "surfaces": ["dashboard", "daily-brief", "session-primer"], "priority": 70 },
+    "replaces": "meetings-2026-04-06-q2-roadmap",
+    "hoard_refs": ["01HW-q2-2026-04-29"]
+  },
+
+  "nhha-rcm-active-board-2026-04-29": {
+    "value": "2026-04-29 — Active board reflects post-launch fast-follows only. Phase 2 backlog parked. RCM regression suite green.",
+    "freshness_class": "current",
+    "memory_class": "replaceable-truth",
+    "scope": "work",
+    "dated": "2026-04-29",
+    "tags": ["nhha", "rcm"],
+    "replaces": "nhha-rcm-active-board-4-2"
+  },
+
+  "ttoad-367-final-results": {
+    "value": "2026-04-22 — TTOAD-367 audit cycle complete. Auth scope mismatch confirmed and patched. Awaiting deploy window.",
+    "freshness_class": "recent",
+    "memory_class": "expiring-tactical",
+    "scope": "work",
+    "dated": "2026-04-22",
+    "tags": ["ttoad-367", "audit"],
+    "renderer_hints": { "surfaces": ["dashboard"], "priority": 50 }
+  },
+
+  "bug-referral-setup-2026-04-09": {
+    "value": "2026-04-09 — Bug referral routes: NHHA bugs → Jamie, RCM bugs → Ishan, infra → reorg-on-call rotation.",
+    "freshness_class": "recent",
+    "memory_class": "expiring-tactical",
+    "scope": "work",
+    "dated": "2026-04-09",
+    "tags": ["referral", "process"],
+    "renderer_hints": { "surfaces": ["dashboard", "session-primer"], "priority": 40, "decay": "fade" }
+  },
+
+  "april-2026-timeline": {
+    "value": "April 2026: NHHA RCM launched first week (3-31 to 4-3 release). Fast-follow cycle 4-7 to 4-9. Reorg context settled mid-month. Sprint 3 planning 4-9. Q2 roadmap initial scoping 4-6, locked 4-29. TTOAD-367 audit cycle 4-9 to 4-22.",
+    "summary": "April: RCM launch + one fast-follow + Q2 lock.",
+    "freshness_class": "contextual",
+    "memory_class": "timeline",
+    "scope": "work",
+    "dated": "2026-04-29",
+    "tags": ["timeline", "april-2026"],
+    "renderer_hints": { "surfaces": ["session-primer"], "priority": 30 }
+  },
+
+  "team-roster": {
+    "value": "Jamie — eng lead, NHHA. Ishan — eng lead, RCM (he/him). Reorg-on-call — rotating weekly. QA peers: see qa-team-roster doctrine entry for full list.",
+    "freshness_class": "evergreen",
+    "memory_class": "evergreen-reference",
+    "scope": "work",
+    "dated": "2026-04-29",
+    "tags": ["team", "reference"],
+    "doctrine_ref": "team-roster"
+  },
+
+  "default-bug-investigation-protocol": {
+    "value": "Reproduce locally, capture seed data, check Sentry for prior occurrences, diff against last known good build, file findings in TTOAD with reproduction steps before commenting on the PR.",
+    "freshness_class": "pinned",
+    "memory_class": "pinned-doctrine",
+    "scope": "work",
+    "dated": "2026-04-29",
+    "doctrine_ref": "qa-bug-investigation-protocol",
+    "renderer_hints": { "surfaces": ["session-primer", "dashboard"], "priority": 95, "decay": "never" }
+  },
+
+  "writing-preferences": {
+    "value": "Plain language. Dated entries. No exclamation points. Short paragraphs. Lists over prose when items are parallel.",
+    "freshness_class": "evergreen",
+    "memory_class": "evergreen-reference",
+    "scope": "identity",
+    "dated": "2026-04-29",
+    "doctrine_ref": "writing-preferences"
+  },
+
+  "backpack-freshness-guide": "2026-04-29 — Current band: items dated 2026-04-28 or 2026-04-29. Recent: 2026-04-22 through 2026-04-27. Contextual: April pre-22. Historical: pre-April. Verify any item older than 1 week before acting on specifics. Update stale entries in place."
+}

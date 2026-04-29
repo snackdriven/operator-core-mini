@@ -1,0 +1,22 @@
+---
+id: meetings-2026-04-29-q2-roadmap
+freshness_class: current
+memory_class: expiring-tactical
+scope: work
+dated: '2026-04-29'
+created_at: '2026-04-29T15:30:00Z'
+ttl_seconds: 1209600
+replaces: meetings-2026-04-06-q2-roadmap
+tags: [q2, roadmap, nhha]
+source:
+  kind: scratch-pad
+  ref: dailies/2026-04-29.md
+hoard_refs:
+  - 01HW-q2-2026-04-29
+renderer_hints:
+  surfaces: [dashboard, daily-brief, session-primer]
+  priority: 70
+---
+2026-04-29 — Q2 roadmap sync: scope locked for May, NHHA RCM phase 2
+deferred to June, jira board migration cleanup carried over from April.
+Misnamed PR detection follow-up still unowned.

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/backpack.schema.json",
+  "title": "Backpack",
+  "description": "Active carry-state. Curated, freshness-aware, replace-in-place. Mirrors the live backpack.json shape: a flat object of string keys whose values are either configuration entries (prefixed with '_config:') or BackpackItems. Each item validates against backpack-item.schema.json. Backpack answers: what should be near right now?",
+  "type": "object",
+  "propertyNames": {
+    "pattern": "^(_config:[a-z_]+|[a-z0-9][a-z0-9_-]*)$",
+    "description": "Keys are either '_config:*' for configuration or kebab-case item ids."
+  },
+  "properties": {
+    "_config:pinned_keys": {
+      "description": "List of item keys that should always remain surfaced regardless of freshness. Stored as a JSON-encoded string in the legacy file; parsed array preferred going forward.",
+      "oneOf": [
+        { "type": "string", "contentMediaType": "application/json" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+    "_config:ttl": {
+      "description": "Per-key freshness metadata. Stored as a JSON-encoded string in the legacy file; parsed object preferred going forward.",
+      "oneOf": [
+        { "type": "string", "contentMediaType": "application/json" },
+        { "$ref": "#/$defs/TtlConfig" }
+      ]
+    }
+  },
+  "additionalProperties": {
+    "$ref": "backpack-item.schema.json#"
+  },
+  "$defs": {
+    "TtlConfig": {
+      "type": "object",
+      "description": "Map of item key to freshness window.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["created_at", "ttl_seconds"],
+        "properties": {
+          "created_at": { "type": "string", "format": "date-time" },
+          "ttl_seconds": { "type": "integer", "minimum": 0 },
+          "replaces": { "type": "string" },
+          "review_after": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

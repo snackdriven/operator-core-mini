@@ -1,0 +1,15 @@
+{
+  "id": "01HW-q2-2026-04-29",
+  "kind": "transcript-summary",
+  "captured_at": "2026-04-29T15:45:00Z",
+  "occurred_at": "2026-04-29T15:00:00Z",
+  "title": "Q2 roadmap sync — 2026-04-29",
+  "content": "Q2 scope locked for May. NHHA RCM phase 2 deferred to June. Jira board migration cleanup carried over from April. Open question: who owns the misnamed PR detection follow-up.",
+  "scope": "work",
+  "source": { "kind": "transcript", "ref": "transcripts/2026-04-29-q2-roadmap.txt" },
+  "tags": ["q2", "roadmap", "nhha"],
+  "people": ["Jamie", "Ishan"],
+  "projects": ["nhha-rcm"],
+  "promoted_to_backpack": "meetings-2026-04-29-q2-roadmap",
+  "summary": "Q2 scope locked; NHHA RCM phase 2 → June."
+}
