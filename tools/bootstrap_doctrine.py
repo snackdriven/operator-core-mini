@@ -14,6 +14,24 @@ to mine reliably). It writes the *minimum* schema-valid scaffolding so:
   - voice/routing rules ship as working defaults (Good Place + Mass Effect
     skins, low/high energy routing) so narrator surfaces render out of the box
 
+The nine seed entries this script writes are:
+
+  identity/user-profile, default/writing-preferences,
+  voice/voice-good-place, voice/voice-mass-effect,
+  routing/narrator-low-energy, routing/narrator-high-energy,
+  policy/consent-narrator-vault, policy/consent-health-private,
+  policy/github-source-of-truth
+
+Not every renderer reads every entry today — statusline, daily-brief, and
+session-primer use only `identity/*` and `default/*`; the `voice/*` and
+`routing/*` entries are consumed by `narrator_*` and the `policy/*` entries
+are honored by ingestion adapters and the consent gate. They ship together
+because hand-authoring them later (when an operator finally needs the
+narrator skin or a consent posture) is more friction than ignoring nine
+schema-clean files. Treat these as **seeds**, not active configuration: a
+fresh operator-root after `bootstrap_doctrine.py` is renderable but not
+yet personalized; hand-edit the body text + frontmatter to taste.
+
 Usage:
     python tools/bootstrap_doctrine.py path/to/operator-root [--name "Kayla"]
                                         [--summary "QA at NHHA"]

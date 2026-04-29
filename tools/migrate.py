@@ -4,6 +4,14 @@ migrate.py — convert legacy single-file backpack.json into the file-system-as-
 
 Production-quality migrator for snackdriven/scratch-pad's `backpack.json`.
 
+This file is the BACKPACK migrator. The Hoard side (filesystem walks of
+``dailies/`` and loose artifacts) lives in ``tools/migrate_hoard.py``;
+shared id/date/yaml helpers live in ``tools/_migrate_common.py``. The
+TTL diversion logic stays here because it acts on backpack items, not
+filesystem artifacts: when ``_config:ttl`` declares an item is past
+expiry, this module writes that item under ``hoard/`` instead of
+``backpack/`` so renderers see a properly-stamped ``aged_out_at``.
+
 Behavior:
   - Read a legacy backpack.json (the live shape from snackdriven/scratch-pad).
   - For each non-config key, write one markdown file with YAML frontmatter
@@ -14,78 +22,94 @@ Behavior:
   - Convert legacy _config:pinned_keys / _config:ttl into structured form.
   - Refuse to overwrite existing files (idempotent re-runs are fine; conflicts
     must be explicit).
+  - When ``--with-hoard`` is supplied, delegate the filesystem hoard walk
+    to ``migrate_hoard.migrate_hoard(...)``.
 
 Usage:
     python tools/migrate.py path/to/backpack.json path/to/output-root
-    python tools/migrate.py path/to/backpack.json path/to/output-root \
+    python tools/migrate.py path/to/backpack.json path/to/output-root \\
         --with-hoard path/to/scratch-pad-root [--now 2026-04-29T14:00:00Z]
-
-With ``--with-hoard`` pointing at the scratch-pad root (the directory that
-contains ``dailies/`` and the loose ``*.html`` reports alongside
-``backpack.json``) the migrator ALSO populates ``<output-root>/hoard/`` from
-three sources:
-
-  1. ``_config:ttl`` entries whose ``created_at + ttl_seconds`` has passed
-     ``--now`` (or wall-clock UTC if omitted). Those items are written to
-     hoard/ instead of backpack/, with ``aged_out_at`` stamped accordingly.
-  2. Every file under ``dailies/YYYY-MM-DD/`` becomes a hoard entry under
-     ``hoard/YYYY/MM/DD/<slug>.md`` with ``aged_out_at`` set to
-     ``YYYY-MM-DDT12:00:00Z``.
-  3. Loose ``*.html`` reports at the scratch-pad root become hoard entries
-     whose ``value`` points back to the on-disk file (the migrator does not
-     inline large HTML).
 
 Writes:
     <output-root>/backpack/current/<id>.md
     <output-root>/backpack/pinned/<id>.md
     <output-root>/backpack/evergreen/<id>.md
     <output-root>/backpack/_replaced/<id>.md   (for items whose value declares replaces=...)
+    <output-root>/hoard/<YYYY>/<MM>/<DD>/<id>.md  (TTL-diverted + --with-hoard sources)
     <output-root>/policy/freshness.json        (skeleton, hand-edit afterward)
 
-Does not write the index. Run `tools/bp_build.py` after migration.
+Does not write the backpack/_index.json or hoard/_hoard.jsonl. Run
+``tools/bp_build.py`` after migration.
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
-import re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-try:
-    import yaml  # PyYAML
-except ImportError:  # pragma: no cover
-    sys.exit("PyYAML required: pip install pyyaml")
+# Allow `python tools/migrate.py …` to import sibling modules.
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-ID_OK = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
-
-# Date extraction patterns, in priority order.
-_RE_ISO_DATE = re.compile(r"\b(20\d{2})-(\d{2})-(\d{2})\b")
-_RE_AS_OF = re.compile(
-    r"as of\s+(20\d{2})-(\d{2})-(\d{2})", re.IGNORECASE
+from _migrate_common import (  # noqa: E402
+    parse_iso,
+    slugify,
+    to_iso_z,
+    write_frontmatter_md,
+)
+from migrate_hoard import (  # noqa: E402
+    hoard_path_for,
+    migrate_hoard,
+)
+from _migrate_common import (  # noqa: E402
+    derive_summary,
+    extract_dated,
 )
 
 
-def slugify(key: str) -> str:
-    """Make a legacy key safe for use as a filesystem id."""
-    s = key.lower()
-    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
-    if not s:
-        raise ValueError(f"empty slug from key {key!r}")
-    if not ID_OK.match(s):
-        raise ValueError(f"slug {s!r} from {key!r} fails id pattern")
-    return s
+# ---------------------------------------------------------------------------
+# Schema validation (post-write assertion for the freshness skeleton)
+# ---------------------------------------------------------------------------
 
+def _validate_freshness_skeleton(skeleton: dict) -> None:
+    """Validate the freshness-policy skeleton against its schema.
+
+    Raises ``RuntimeError`` if validation fails. Best-effort: if jsonschema
+    is unavailable in the environment, skip silently — the central
+    ``tools/validate.py`` suite is the source of truth.
+    """
+    try:
+        from jsonschema import Draft202012Validator  # type: ignore
+    except ImportError:  # pragma: no cover
+        return
+    schema_path = Path(__file__).resolve().parent.parent / "schemas" / "freshness-policy.schema.json"
+    if not schema_path.is_file():
+        return
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(skeleton),
+        key=lambda e: list(e.absolute_path),
+    )
+    if errors:
+        details = "; ".join(
+            f"{'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}"
+            for e in errors[:5]
+        )
+        raise RuntimeError(
+            f"freshness-policy skeleton is schema-invalid ({len(errors)} errors): {details}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Backpack helpers
+# ---------------------------------------------------------------------------
 
 def parse_legacy_config(value):
-    """_config:pinned_keys / _config:ttl land as either JSON-encoded strings (legacy) or already-parsed objects."""
+    """``_config:pinned_keys`` / ``_config:ttl`` arrive as JSON strings (legacy)
+    or already-parsed objects. Decode strings; pass through dicts/lists."""
     if isinstance(value, str):
         try:
             return json.loads(value)
@@ -110,85 +134,6 @@ def freshness_dir(item: dict) -> str:
     # decides demotion timing.
     return "current"
 
-
-# ---------------------------------------------------------------------------
-# Date and title mining
-# ---------------------------------------------------------------------------
-
-def extract_dated(key: str, value: str) -> str | None:
-    """
-    Mine a YYYY-MM-DD date from the legacy key + value text.
-
-    Priority:
-      1. `as of YYYY-MM-DD` anywhere in value
-      2. Last YYYY-MM-DD in the id/key (e.g. `dsu-2026-04-07`)
-      3. First YYYY-MM-DD in the value's first non-empty line
-      4. Last YYYY-MM-DD anywhere in value
-      5. None — caller decides fallback.
-    """
-    candidates: list[tuple[int, str]] = []
-
-    # 1. "as of YYYY-MM-DD"
-    if m := _RE_AS_OF.search(value):
-        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-
-    # 2. Date in id (most reliable — operator deliberately stamped it)
-    id_dates = _RE_ISO_DATE.findall(key)
-    if id_dates:
-        y, mo, d = id_dates[-1]
-        return f"{y}-{mo}-{d}"
-
-    # 3. First line of value
-    first_line = next((ln for ln in value.splitlines() if ln.strip()), "")
-    if m := _RE_ISO_DATE.search(first_line):
-        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-
-    # 4. Anywhere in value (last wins — usually the most recent reference)
-    body_dates = _RE_ISO_DATE.findall(value)
-    if body_dates:
-        y, mo, d = body_dates[-1]
-        return f"{y}-{mo}-{d}"
-
-    return None
-
-
-def derive_summary(value: str) -> str | None:
-    """
-    Compress the first non-empty line into a short renderer-friendly summary.
-
-    Returns None if nothing usable. Renderers fall back to `value` when
-    summary is missing, so this is purely an optimization for surfaces
-    that show a lot of items at once (statusline, daily-brief).
-    """
-    first = next((ln.strip() for ln in value.splitlines() if ln.strip()), "")
-    if not first:
-        return None
-
-    # Sentence-end heuristic. Period + space, colon, or em-dash all reasonable.
-    # Take whichever cut produces something compact.
-    cuts = []
-    for sep in (". ", ": ", " — ", " - "):
-        idx = first.find(sep)
-        if 10 <= idx <= 120:
-            cuts.append(idx)
-    if cuts:
-        first = first[: min(cuts)].rstrip(" -—:.")
-
-    # Hard cap.
-    if len(first) > 140:
-        first = first[:137].rstrip() + "…"
-    if len(first) < 8:
-        return None
-    return first
-
-
-def to_iso_z(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-
-
-# ---------------------------------------------------------------------------
-# Item normalization
-# ---------------------------------------------------------------------------
 
 # Legacy "scope" → schema "area" enum mapping. Anything else lands on "work".
 _AREA_FALLBACK = {
@@ -271,96 +216,12 @@ def normalize_value(key: str, value, *, now_iso: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Frontmatter writer
+# TTL diversion (backpack → hoard)
 # ---------------------------------------------------------------------------
-
-class _LiteralBlockDumper(yaml.SafeDumper):
-    """Dump multi-line strings as literal block scalars (|) for safer round-tripping."""
-
-
-def _str_representer(dumper, data):
-    if "\n" in data:
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-
-_LiteralBlockDumper.add_representer(str, _str_representer)
-
-
-# Stable key order for human readability of generated frontmatter.
-_KEY_ORDER = [
-    "id",
-    "freshness_class",
-    "memory_class",
-    "area",
-    "dated",
-    "created_at",
-    "ttl_seconds",
-    "tags",
-    "source",
-    "renderer_hints",
-    "doctrine_ref",
-    "hoard_refs",
-    "replaces",
-    "summary",
-    "value",
-]
-
-
-def _ordered(item: dict) -> dict:
-    out = {}
-    for k in _KEY_ORDER:
-        if k in item:
-            out[k] = item[k]
-    # Anything not in the canonical list goes after (shouldn't happen post-normalize).
-    for k, v in item.items():
-        if k not in out:
-            out[k] = v
-    return out
-
-
-def write_frontmatter_md(out_path: Path, item: dict, body: str = "") -> None:
-    """Write a markdown file with YAML frontmatter for one Backpack item."""
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    if out_path.exists():
-        raise FileExistsError(f"refusing to overwrite {out_path}")
-    fm = yaml.dump(
-        _ordered(item),
-        Dumper=_LiteralBlockDumper,
-        sort_keys=False,
-        allow_unicode=True,
-        width=10**9,
-        default_flow_style=False,
-    ).strip()
-    body = body.strip()
-    if body:
-        out_path.write_text(f"---\n{fm}\n---\n\n{body}\n", encoding="utf-8")
-    else:
-        out_path.write_text(f"---\n{fm}\n---\n", encoding="utf-8")
-
-
-# ---------------------------------------------------------------------------
-# Hoard helpers
-# ---------------------------------------------------------------------------
-
-def _parse_iso(s: str) -> datetime | None:
-    if not isinstance(s, str) or not s:
-        return None
-    try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(timezone.utc)
-    except ValueError:
-        return None
-
-
-def _hoard_path_for(out_root: Path, dated: str, item_id: str) -> Path:
-    """Compose hoard/<YYYY>/<MM>/<DD>/<id>.md."""
-    y, mo, d = dated.split("-")
-    return out_root / "hoard" / y / mo / d / f"{item_id}.md"
-
 
 def _ttl_eligible(ttl_value: dict, now: datetime) -> tuple[bool, str | None]:
-    """True if `created_at + ttl_seconds <= now`. Returns expiry ISO too."""
-    created = _parse_iso(ttl_value.get("created_at", ""))
+    """Return (eligible, expiry_iso). Eligible iff ``created_at + ttl_seconds <= now``."""
+    created = parse_iso(ttl_value.get("created_at", ""))
     ttl_seconds = ttl_value.get("ttl_seconds")
     if created is None or not isinstance(ttl_seconds, (int, float)):
         return False, None
@@ -370,147 +231,49 @@ def _ttl_eligible(ttl_value: dict, now: datetime) -> tuple[bool, str | None]:
     return True, to_iso_z(expires)
 
 
-def _slug_relpath(rel: str) -> str:
-    s = re.sub(r"[^a-z0-9]+", "-", rel.lower()).strip("-")
-    return re.sub(r"-+", "-", s) or "item"
-
-
-def _hoard_entry_for_file(
-    file_path: Path,
-    *,
-    dated: str,
-    aged_out_at: str,
-    source_ref: str,
-    area: str = "work",
-) -> dict:
-    """Build a backpack-item-shaped frontmatter dict pointing at the source file.
-
-    Hoard files share schemas/backpack-item.schema.json per follow-up #3
-    (2026-04-29) — the optional `aged_out_at` field flips the entry into
-    the aged-out window for renderers. We do NOT inline large HTML; the
-    `value` field carries a short pointer to the source-of-truth path.
-    """
-    name = file_path.name
-    suffix = file_path.suffix.lower()
-    if suffix == ".md":
-        kind_hint = "note"
-    elif suffix == ".html":
-        kind_hint = "artifact"
-    elif suffix in {".png", ".jpg", ".jpeg", ".gif", ".webp"}:
-        kind_hint = "screenshot"
-    else:
-        kind_hint = "scrap"
-
-    summary = f"{kind_hint} from {dated}: {name}"
-    if len(summary) > 140:
-        summary = summary[:137] + "…"
-
-    # Include full relative path + extension so sibling files with the
-    # same stem (e.g. .html vs .md) and same-name files under different
-    # subdirs (transcripts/foo.md vs videos/foo.md, both `.gitkeep`, etc.)
-    # don't collide on id.
-    item_id = _slug_relpath(f"{dated}-{source_ref}")
-    value_lines = [
-        f"{dated} — {name}",
-        "",
-        f"Hoard pointer to source-of-truth file: `{source_ref}`.",
-        "",
-        "Aged out of active backpack carry-state. Open the source file for",
-        "the full content (not inlined here to keep hoard files small).",
-    ]
-
-    return {
-        "id": item_id,
-        "value": "\n".join(value_lines),
-        "summary": summary,
-        "freshness_class": "historical",
-        "memory_class": "timeline",
-        "area": area,
-        "source": {"kind": "scratch-pad", "ref": source_ref},
-        "dated": dated,
-        "created_at": f"{dated}T12:00:00Z",
-        "aged_out_at": aged_out_at,
-        "tags": ["hoard", "scratch-pad-import"],
-    }
-
-
-def _migrate_dailies(scratch_root: Path, out_root: Path) -> tuple[int, list[str]]:
-    written = 0
-    skipped: list[str] = []
-    dailies = scratch_root / "dailies"
-    if not dailies.is_dir():
-        return 0, ["dailies/ not found"]
-
-    date_re = re.compile(r"^(20\d{2})-(\d{2})-(\d{2})$")
-    for day_dir in sorted(dailies.iterdir()):
-        if not day_dir.is_dir():
-            continue
-        if not date_re.match(day_dir.name):
-            continue
-        dated = day_dir.name
-        aged_out_at = f"{dated}T23:59:59Z"
-        for f in sorted(day_dir.rglob("*")):
-            if not f.is_file():
-                continue
-            if f.suffix.lower() in {".pyc", ".ds_store"}:
-                continue
-            rel = f.relative_to(scratch_root).as_posix()
-            entry = _hoard_entry_for_file(
-                f, dated=dated, aged_out_at=aged_out_at, source_ref=rel,
-            )
-            out_path = _hoard_path_for(out_root, dated, entry["id"])
-            try:
-                write_frontmatter_md(out_path, entry)
-                written += 1
-            except FileExistsError as exc:
-                skipped.append(str(exc))
-    return written, skipped
-
-
-def _migrate_loose_artifacts(
-    scratch_root: Path, out_root: Path, *, now: datetime
-) -> tuple[int, list[str]]:
-    """Hoard loose *.html / *.md / image files at the scratch-pad root."""
-    written = 0
-    skipped: list[str] = []
-    today_iso = now.date().isoformat()
-    today_aged = to_iso_z(now)
-
-    skip_names = {
-        "backpack.json", "README.md", "CLAUDE.md", "AGENTS.md",
-        "package.json", "qa-onboarding-guide.md",
-        "platform-dev-staging-access.md",
-    }
-    for f in sorted(scratch_root.iterdir()):
-        if not f.is_file():
-            continue
-        if f.suffix.lower() not in {".html", ".md", ".png", ".jpg", ".jpeg"}:
-            continue
-        if f.name in skip_names:
-            continue
-        m = _RE_ISO_DATE.search(f.stem)
-        if m:
-            dated = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-            aged_out_at = f"{dated}T23:59:59Z"
-        else:
-            dated = today_iso
-            aged_out_at = today_aged
-        rel = f.relative_to(scratch_root).as_posix()
-        entry = _hoard_entry_for_file(
-            f, dated=dated, aged_out_at=aged_out_at, source_ref=rel,
-        )
-        out_path = _hoard_path_for(out_root, dated, entry["id"])
-        try:
-            write_frontmatter_md(out_path, entry)
-            written += 1
-        except FileExistsError as exc:
-            skipped.append(str(exc))
-    return written, skipped
-
-
 # ---------------------------------------------------------------------------
 # Migration entrypoint
 # ---------------------------------------------------------------------------
+
+def _build_freshness_skeleton(
+    ttl_config, pinned_keys, *, now_iso: str
+) -> dict:
+    """Return a schema-clean ``freshness-policy.schema.json`` skeleton.
+
+    Emits the required ``rules`` block, ``bands`` with ``max_age_days`` +
+    ``treatment`` (NOT ``ttl_default_seconds``), plus optional
+    ``ttl_presets`` + ``pinned_keys``. Crucially, the legacy
+    ``ttl_overrides`` map is dropped — it has no place in the schema —
+    and is reconstructable from the items themselves via
+    ``ttl_seconds`` on each backpack-item.
+    """
+    return {
+        "version": "0.1.0",
+        "updated_at": now_iso,
+        "bands": [
+            {"name": "current",    "max_age_days": 1,     "treatment": "trust",                            "renderer_priority": 90},
+            {"name": "recent",     "max_age_days": 7,     "treatment": "mostly-reliable-verify-specifics", "renderer_priority": 70},
+            {"name": "contextual", "max_age_days": 28,    "treatment": "good-for-patterns-verify-details", "renderer_priority": 50},
+            {"name": "historical", "max_age_days": 120,   "treatment": "culture-pattern-only",             "renderer_priority": 25},
+            {"name": "evergreen",  "max_age_days": 36500, "treatment": "refresh-periodically",             "renderer_priority": 60},
+        ],
+        "rules": {
+            "verify_after_days": 7,
+            "require_dated_entries": True,
+            "update_in_place": True,
+            "patterns_age_slower_than_tactics": True,
+            "promote_to_doctrine_after_days": 90,
+            "demote_to_hoard_after_days": 60,
+        },
+        "ttl_presets": {
+            "snapshot": 604800,
+            "tactical": 1209600,
+            "fix-thread": 2592000,
+            "quarter": 7776000,
+        },
+        "pinned_keys": pinned_keys if isinstance(pinned_keys, list) else [],
+    }
+
 
 def migrate(
     legacy_path: Path,
@@ -543,8 +306,11 @@ def migrate(
             skipped.append((key, str(exc)))
             continue
 
-        if isinstance(pinned_keys, list) and key in pinned_keys:
+        is_pinned_key = isinstance(pinned_keys, list) and key in pinned_keys
+        if is_pinned_key:
             # Schema has no `pinned` field — express pinning via freshness_class.
+            # Evergreen items are already preserved across surfaces, so we
+            # leave that signal intact rather than overwriting with `pinned`.
             if item.get("freshness_class") not in {"pinned", "evergreen"}:
                 item["freshness_class"] = "pinned"
 
@@ -559,8 +325,10 @@ def migrate(
             if "ttl_seconds" in ttl_value:
                 item["ttl_seconds"] = int(ttl_value["ttl_seconds"])
             # Pinned items are preserved even if stale — the operator has
-            # explicitly chosen to keep them visible.
-            if item.get("freshness_class") != "pinned":
+            # explicitly chosen to keep them visible. We check both the
+            # explicit pinned-keys list AND the freshness_class to catch
+            # items where pinning is expressed structurally.
+            if not is_pinned_key and item.get("freshness_class") != "pinned":
                 eligible, aged_out_at = _ttl_eligible(ttl_value, now)
                 if eligible and aged_out_at:
                     item["aged_out_at"] = aged_out_at
@@ -577,7 +345,7 @@ def migrate(
         body = item.pop("body", "") if isinstance(item.get("body"), str) else ""
         if diverted_to_hoard:
             dated = item.get("dated") or now.date().isoformat()
-            out_path = _hoard_path_for(out_root, dated, item["id"])
+            out_path = hoard_path_for(out_root, dated, item["id"])
         else:
             sub = freshness_dir(item)
             out_path = out_root / "backpack" / sub / f"{item['id']}.md"
@@ -590,32 +358,17 @@ def migrate(
     # Hoard from scratch-pad filesystem (dailies + loose artifacts).
     hoard_stats = {"dailies": 0, "loose": 0}
     if scratch_root is not None:
-        d_w, d_s = _migrate_dailies(scratch_root, out_root)
-        l_w, l_s = _migrate_loose_artifacts(scratch_root, out_root, now=now)
-        hoard_stats["dailies"] = d_w
-        hoard_stats["loose"] = l_w
-        for reason in d_s + l_s:
+        result = migrate_hoard(scratch_root, out_root, now=now)
+        hoard_stats["dailies"] = result["dailies_written"]
+        hoard_stats["loose"] = result["loose_written"]
+        for reason in result["skipped"]:
             skipped.append(("hoard", reason))
 
-    # Skeleton freshness policy. Hand-edit afterward.
-    freshness_skeleton = {
-        "version": "0.1.0",
-        "generated_from": "backpack.json (migration)",
-        "ttl_presets": {
-            "1w": 604800,
-            "2w": 1209600,
-            "30d": 2592000,
-            "90d": 7776000,
-        },
-        "bands": [
-            {"name": "current", "ttl_default_seconds": 1209600},
-            {"name": "recent", "ttl_default_seconds": 2592000},
-            {"name": "contextual", "ttl_default_seconds": 7776000},
-            {"name": "evergreen", "ttl_default_seconds": None},
-        ],
-        "ttl_overrides": ttl_config if isinstance(ttl_config, dict) else {},
-        "pinned_keys": pinned_keys if isinstance(pinned_keys, list) else [],
-    }
+    # Schema-clean freshness-policy skeleton. Hand-edit afterward.
+    freshness_skeleton = _build_freshness_skeleton(
+        ttl_config, pinned_keys, now_iso=now_iso,
+    )
+    _validate_freshness_skeleton(freshness_skeleton)  # asserts schema-clean
     policy_path = out_root / "policy" / "freshness.json"
     policy_path.parent.mkdir(parents=True, exist_ok=True)
     if not policy_path.exists():
@@ -670,7 +423,7 @@ def main(argv: list[str]) -> int:
             return 1
     now: datetime | None = None
     if args.now:
-        parsed = _parse_iso(args.now)
+        parsed = parse_iso(args.now)
         if parsed is None:
             print(f"bad --now: {args.now}", file=sys.stderr)
             return 1

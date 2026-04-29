@@ -36,7 +36,7 @@
         {
           "type": "object",
           "additionalProperties": true,
-          "description": "Map of id -> item. Each value matches the corresponding per-item schema (backpack-item.schema.json or doctrine-entry.schema.json or hoard-item.schema.json)."
+          "description": "Map of id -> item. Each value matches the corresponding per-item schema (backpack-item.schema.json for both backpack-index and hoard-index entries, or doctrine-entry.schema.json for doctrine-index entries)."
         },
         {
           "type": "array",
