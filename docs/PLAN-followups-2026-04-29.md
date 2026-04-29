@@ -748,3 +748,91 @@ Three calls, in priority order:
    is dropped (no `narrator-list`).
 
 Once those three are answered, the rest is mechanical.
+
+---
+
+## Phase 5 — migrate hardening (shipped 2026-04-29)
+
+After PR #1 (ADRs/fact-bundle) and PR #2 (two-tier goldens) merged, I
+ran the migrator end-to-end against the real `snackdriven/scratch-pad`
+repo and filed five bugs. All five are now fixed in this branch.
+
+### Bugs found, in priority order
+
+1. **Bug 0 (underneath, not numbered):** migrate.py emitted fields not
+   allowed by the post-#7 `backpack-item.schema.json`
+   (`additionalProperties: false`) — `title`, `_meta`, raw `scope`.
+   117/117 items failed schema validation.
+2. **Bug 2:** no date mined from value-text. Every item missing `dated`
+   surfaced in session-primer as `(?)`.
+3. **Bug 4:** legacy `title:` heuristic produced garbage
+   ("As of 2026-04-07 end-of-session"). Removed schema-illegal field;
+   renderers already fall back to `id` or first line.
+4. **Bug 1:** no doctrine seed. Rendering a pure migrated tree (no
+   fixture overlay) blew up on "an operator root" check.
+5. **Bug 5:** no per-surface item budgets. Session-primer was 150 lines
+   / 57 KB with 117 items. Statusline truncated but wasn't actually
+   budget-aware.
+6. **Bug 3:** no hoard. `aged_out` section was perpetually empty because
+   the migrator wrote nothing to `hoard/`, even though `_config:ttl`
+   encoded which items had expired.
+
+### Fixes
+
+- **tools/migrate.py** — full rewrite. Schema-clean output per
+  post-#7 backpack-item schema. Three-tier `dated` mining
+  (as-of → id-trailing date → value first line → value last date).
+  Legacy `scope` → `area` enum. `source.kind = scratch-pad`. Items with
+  no extractable date promoted to evergreen. **New `--with-hoard` flag**
+  walks `dailies/YYYY-MM-DD/` and loose `*.html` at scratch-pad root,
+  writing one hoard entry per file with `aged_out_at` stamped from the
+  dated folder. TTL-expired items (per `_config:ttl[*].created_at +
+  ttl_seconds < --now`) are diverted to `hoard/` instead of
+  `backpack/current/` with `aged_out_at` = expiry time.
+- **tools/bootstrap_doctrine.py** (NEW) — writes 9 starter doctrine
+  entries so the renderers start sane without a fixture overlay:
+  identity/user-profile, default/writing-preferences, voice/voice-
+  good-place, voice/voice-mass-effect, routing/narrator-{low,high}-
+  energy, policy/consent-{narrator-vault,health-private,github-source-
+  of-truth}. CLI: `--name --summary --force`.
+- **renderers/_common.py** — added `DEFAULT_RENDERER_BUDGETS` dict,
+  `budget_for()`, `apply_budget()`, `by_priority_then_recency()`.
+  Pinned items are never budget-truncated. Budgets per-surface:
+  session-primer current=12 / recent=8 / verify=8 / aged_out=8;
+  daily-brief 10 / 6 / 8 / 8; narrator-list + narrator-brief
+  8 / 4 / 0 / 4; statusline 1 / 0 / 0 / 0. Overridable via
+  `policy/freshness.json["renderer_budgets"]`.
+- **renderers/{daily_brief,session_primer,narrator_list,narrator_brief}
+  .py** — apply `apply_budget()` to current / recent / verify /
+  aged_out lists, surface a `+N more … (budgeted)` hint when truncation
+  fires. Sort is priority-desc → dated-desc → id-asc.
+
+### Real-data results
+
+Against `snackdriven/scratch-pad@HEAD` with `--now 2026-04-29T20:00:00Z`:
+
+- 117/117 backpack items schema-valid (was 0/117).
+- 13 items past TTL → diverted to `hoard/`, leaving 104 in backpack.
+- 495 files migrated from `dailies/` into `hoard/YYYY/MM/DD/`.
+- 14 loose `*.html` reports migrated into `hoard/`.
+- `aged_out` section populates overnight: 11 items inside the
+  default 36 h window.
+- Budget truncation fires on real data:
+  `+44 more current items not shown (budgeted)`,
+  `+48 more verify items not shown (budgeted)`.
+- Fixture goldens still byte-identical (4-item fixture fits under every
+  budget). `tools/validate.py` shows `ALL PASSED` twice.
+
+### Pipeline (for future re-runs)
+
+```bash
+rm -rf /tmp/operator-root && \
+  python tools/migrate.py /tmp/scratch-pad/backpack.json /tmp/operator-root \
+    --with-hoard /tmp/scratch-pad --now 2026-04-29T20:00:00Z && \
+  python tools/bootstrap_doctrine.py /tmp/operator-root \
+    --name "Kayla" --summary "QA at Tebra/NHHA. Bentonville, AR." && \
+  python tools/bp_build.py /tmp/operator-root
+for s in session_primer daily_brief statusline narrator_list narrator_brief; do
+  python renderers/$s.py /tmp/operator-root --now 2026-04-29T20:00:00Z
+done
+```

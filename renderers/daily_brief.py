@@ -45,6 +45,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _common import (  # noqa: E402
     age_days,
+    apply_budget,
+    budget_for,
     build_fact_bundle,
     parse_iso,
 )
@@ -83,26 +85,44 @@ def render(operator_root: Path, now: datetime | None = None) -> str:
     if bundle.current_bp:
         lines.append("## Near today")
         lines.append("")
-        for b in bundle.current_bp:
+        kept, dropped = apply_budget(
+            bundle.current_bp,
+            budget_for(RENDERER_ID, "current", bundle.freshness_policy),
+        )
+        for b in kept:
             lines.append(f"- **{b['id']}** — {first_line(b.get('value'))}")
+        if dropped:
+            lines.append(f"- _… +{dropped} more current items not shown (budgeted)._")
         lines.append("")
 
     if bundle.verify_items:
         lines.append("## Verify before acting")
         lines.append("")
-        for b in bundle.verify_items:
+        kept, dropped = apply_budget(
+            bundle.verify_items,
+            budget_for(RENDERER_ID, "verify", bundle.freshness_policy),
+        )
+        for b in kept:
             age = age_days(b, now)
             age_note = f"~{age:.0f}d old" if age is not None else "no created_at"
             lines.append(f"- **{b['id']}** ({age_note}). {first_line(b.get('value'))}")
+        if dropped:
+            lines.append(f"- _… +{dropped} more verify items not shown (budgeted)._")
         lines.append("")
 
     # Follow-up #3 — real aged-out comes from Hoard, not _replaced.
     if bundle.aged_out:
         lines.append("## Aged out overnight")
         lines.append("")
-        for b in bundle.aged_out:
+        kept, dropped = apply_budget(
+            bundle.aged_out,
+            budget_for(RENDERER_ID, "aged_out", bundle.freshness_policy),
+        )
+        for b in kept:
             ts = (b.get("aged_out_at") or "").split("T")[0] or "?"
             lines.append(f"- **{b['id']}** (aged out {ts}). {first_line(b.get('value'))}")
+        if dropped:
+            lines.append(f"- _… +{dropped} more aged-out items not shown (budgeted)._")
         lines.append("")
 
     if bundle.replaced:
@@ -118,8 +138,14 @@ def render(operator_root: Path, now: datetime | None = None) -> str:
     if bundle.this_week:
         lines.append("## This week (recent band)")
         lines.append("")
-        for b in bundle.this_week:
+        kept, dropped = apply_budget(
+            bundle.this_week,
+            budget_for(RENDERER_ID, "recent", bundle.freshness_policy),
+        )
+        for b in kept:
             lines.append(f"- **{b['id']}** — {first_line(b.get('value'))}")
+        if dropped:
+            lines.append(f"- _… +{dropped} more recent items not shown (budgeted)._")
         lines.append("")
 
     if bundle.pinned_bp:

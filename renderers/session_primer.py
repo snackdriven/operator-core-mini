@@ -50,6 +50,8 @@ from _common import (  # noqa: E402
     FactBundle,
     age_days,
     applies_here,
+    apply_budget,
+    budget_for,
     build_fact_bundle,
     by_priority,
     parse_iso,
@@ -216,18 +218,30 @@ def render(operator_root: Path, now: datetime | None = None) -> str:
     if bundle.current_bp:
         lines.append("## What's near right now (Backpack: current)")
         lines.append("")
-        for b in bundle.current_bp:
+        kept, dropped = apply_budget(
+            bundle.current_bp,
+            budget_for(RENDERER_ID, "current", bundle.freshness_policy),
+        )
+        for b in kept:
             first_line = b["value"].strip().splitlines()[0]
             lines.append(f"- **{b['id']}** ({b.get('dated', '?')}). {first_line}")
+        if dropped:
+            lines.append(f"- _… +{dropped} more current items not shown (budgeted)._")
         lines.append("")
 
     if bundle.verify_items:
         lines.append("## Verify before acting")
         lines.append("")
-        for b in bundle.verify_items:
+        kept, dropped = apply_budget(
+            bundle.verify_items,
+            budget_for(RENDERER_ID, "verify", bundle.freshness_policy),
+        )
+        for b in kept:
             age = age_days(b, now)
             age_note = f"~{age:.0f}d old" if age is not None else "no created_at"
             lines.append(f"- `{b['id']}` ({age_note}). Re-confirm before acting.")
+        if dropped:
+            lines.append(f"- _… +{dropped} more verify items not shown (budgeted)._")
         lines.append("")
 
     # Follow-up #6: Routing hints
