@@ -17,7 +17,7 @@ a single ingestion event, or one row in a stream.
 | File | Purpose |
 |---|---|
 | `backpack-item.schema.json` | One Backpack entry. Accepts raw string (legacy) or structured object. |
-| `doctrine-entry.schema.json` | One Doctrine entry (identity, default, workflow, routing-rule, voice-rule, evergreen-reference, policy, vocabulary). |
+| `doctrine-entry.schema.json` | One Doctrine entry (identity, default, workflow, routing-rule, voice-rule, evergreen-reference, policy, vocabulary). The `policy` kind may carry a `consent` object describing posture (opt-in / opt-out / forbidden / allow) for an ingestion or rendering scope. |
 | `hoard-item.schema.json` | One Hoard record. Hoard files are JSONL where each line validates against this schema. |
 
 ### Aggregate schemas (validate a whole layer at once)
@@ -91,7 +91,7 @@ Migration to the per-file layout is a content move, not a schema break.
 | `examples/backpack-item.sample.json` | `backpack-item.schema.json` | Single structured item with full metadata. |
 | `examples/backpack-item.frontmatter.md` | `backpack-item.schema.json` (frontmatter) | File-system-as-database form: YAML frontmatter + body. |
 | `examples/backpack-index.sample.json` | `index.schema.json` | Generated, machine-written snapshot for renderers. |
-| `examples/doctrine.sample.json` | `doctrine.schema.json` | Whole document. Covers all 8 doctrine kinds (identity, default, workflow, routing-rule, voice-rule, evergreen-reference, policy, vocabulary). |
+| `examples/doctrine.sample.json` | `doctrine.schema.json` | Whole document. Covers all 8 doctrine kinds; includes 3 consent policies (health-records forbidden, work-channel transcripts opt-in, narrator vault opt-out) demonstrating the `consent` posture extension. |
 | `examples/doctrine-entry.sample.json` | `doctrine-entry.schema.json` | Single routing-rule entry. |
 | `examples/hoard-sample.jsonl` | `hoard-item.schema.json` | 11 records covering all 11 kinds (transcript, transcript-summary, note, scrap, screenshot, log, journal-entry, artifact, timeline-event, session-summary, imported-memory). |
 | `examples/freshness-policy.sample.json` | `freshness-policy.schema.json` | All 5 freshness bands with treatments, TTL presets, promote/demote thresholds. |

@@ -51,6 +51,42 @@
       },
       "additionalProperties": false
     },
+    "consent": {
+      "type": "object",
+      "description": "Optional consent-posture definition, used when kind = 'policy' and the policy governs ingestion or rendering of sensitive material. Pathways MUST consult this before crossing the named scope; renderers MUST consult it before exposing material in the named scope.",
+      "required": ["scope", "posture"],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "What this consent applies to (e.g. 'health-records', 'work-channel-transcripts', 'minors-in-photos')."
+        },
+        "posture": {
+          "type": "string",
+          "enum": ["opt-in", "opt-out", "forbidden", "allow"],
+          "description": "opt-in = MUST have explicit consent before ingestion. opt-out = ingest by default, MUST honor an opt-out signal. forbidden = MUST NOT ingest under any circumstances. allow = no consent gate (use sparingly, only for clearly user-authored data)."
+        },
+        "applies_to_pathways": {
+          "type": "array",
+          "description": "Ingestion pathway ids this consent governs (e.g. 'transcripts', 'narrator-vault').",
+          "items": { "type": "string" }
+        },
+        "applies_to_renderers": {
+          "type": "array",
+          "description": "Renderer/surface ids this consent governs at output time.",
+          "items": { "type": "string" }
+        },
+        "requires": {
+          "type": "array",
+          "description": "Required preconditions for ingestion or rendering when posture allows it (e.g. 'redact PII before storage', 'attach source citation').",
+          "items": { "type": "string" }
+        },
+        "rationale": {
+          "type": "string",
+          "description": "One- or two-sentence reason this posture exists. Helps reviewers reason about exceptions."
+        }
+      },
+      "additionalProperties": false
+    },
     "voice": {
       "type": "object",
       "description": "Optional voice/skin definition, used when kind = 'voice-rule'. Renderers consult this to translate the same facts into the configured tone without changing the underlying state.",

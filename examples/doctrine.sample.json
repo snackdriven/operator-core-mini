@@ -113,6 +113,62 @@
       "pinned": true
     },
     {
+      "id": "consent-health-data",
+      "kind": "policy",
+      "title": "Health data is forbidden in shared surfaces",
+      "body": "Lab results, medication names, mental-health session notes, and provider names MUST NOT be ingested into Backpack/Doctrine/Hoard from any pathway. They live in the personal-health vault only. Reference by abstract category ('current treatment plan') is allowed; specifics are not.",
+      "pinned": true,
+      "stability": "stable",
+      "tags": ["consent", "health"],
+      "consent": {
+        "scope": "health-records",
+        "posture": "forbidden",
+        "applies_to_pathways": ["transcripts", "narrator-vault", "scratch-pad", "life-state"],
+        "applies_to_renderers": ["narrator-brief", "daily-brief", "session-primer", "statusline"],
+        "rationale": "Health data has long-tail consequences and crosses contexts (work renderers, shared screens). Keeping it out of the substrate entirely is simpler than per-surface redaction."
+      }
+    },
+    {
+      "id": "consent-work-transcripts",
+      "kind": "policy",
+      "title": "Work-channel transcripts are opt-in per meeting",
+      "body": "Transcripts of meetings on work calendars (NHHA, RCM, Tebra-internal) MAY be ingested only when the meeting body explicitly includes 'transcript-ok'. Default is no ingestion; the transcripts pathway MUST short-circuit when the marker is absent.",
+      "pinned": true,
+      "stability": "evolving",
+      "tags": ["consent", "transcripts", "work"],
+      "consent": {
+        "scope": "work-channel-transcripts",
+        "posture": "opt-in",
+        "applies_to_pathways": ["transcripts"],
+        "requires": [
+          "meeting body contains 'transcript-ok' marker",
+          "strip participant names other than user before storage",
+          "attach source citation (calendar event id) to every Hoard record"
+        ],
+        "rationale": "Coworkers haven't consented to transcripts being stored in a personal substrate. Opt-in keeps Tebra-side consent posture intact."
+      }
+    },
+    {
+      "id": "consent-narrator-vault",
+      "kind": "policy",
+      "title": "Narrator vault is opt-out at the file level",
+      "body": "Markdown files in the narrator vault are ingested by default. A file is excluded if it contains the frontmatter key 'ingest: false' OR lives under a path matching narrator/_private/. Excluded files MUST emit no audit event referencing their path.",
+      "pinned": true,
+      "stability": "stable",
+      "tags": ["consent", "narrator"],
+      "consent": {
+        "scope": "narrator-vault",
+        "posture": "opt-out",
+        "applies_to_pathways": ["narrator-vault"],
+        "requires": [
+          "honor 'ingest: false' frontmatter key",
+          "honor narrator/_private/ path prefix",
+          "audit events for excluded files MUST omit path and content"
+        ],
+        "rationale": "The vault is dense; opt-in would require touching hundreds of files. Opt-out at file or path level matches how the user already organizes the vault."
+      }
+    },
+    {
       "id": "vocab-backpack-doctrine-hoard",
       "kind": "vocabulary",
       "title": "Memory ecology terms",
