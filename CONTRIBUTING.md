@@ -170,31 +170,44 @@ See [docs/decisions/README.md](./docs/decisions/README.md) for the full
 template. In short: short, declarative title; Context / Decision /
 Consequences (positive, negative, neutral) / Alternatives / References.
 
-## The validation suite
+## Local checks
 
-There is no test runner yet; validation is one Python script. You can run
-it inline:
+Two scripts and one CI workflow. Run both locally before opening a PR:
 
-```python
-import json, glob, yaml
-from jsonschema import Draft202012Validator, RefResolver
-
-# Load schemas into a store keyed by $id and filename.
-store = {}
-for f in sorted(glob.glob("schemas/*.schema.json")):
-    s = json.load(open(f))
-    Draft202012Validator.check_schema(s)
-    if "$id" in s: store[s["$id"]] = s
-    store[f] = s
-
-# Validate every example against its declared schema.
-# (See examples/ for the convention: filename mirrors schema name.)
+```bash
+pip install jsonschema pyyaml
+python tools/validate.py   # schema self-validity + example payloads + lint
+python tools/lint.py       # structural lint only (also called by validate.py)
 ```
 
-Every PR that touches `schemas/` or `examples/` MUST pass this suite
-before merge. It's deliberately not automated yet — keeping the loop in
-the contributor's terminal makes the validator a thing they read, not a
-thing that runs and disappears.
+`tools/validate.py` covers:
+
+- All schemas in `schemas/` are themselves valid Draft 2020-12.
+- Every example in `examples/` validates against its declared schema.
+- JSONL files (`hoard-sample.jsonl`, ingestion events) validate per-line.
+- Files in `examples/ingestion-trace/{hoard,backpack}/` validate against the
+  appropriate schema.
+- Then it delegates to `tools/lint.py`.
+
+`tools/lint.py` enforces repo conventions that JSON Schema can't express:
+
+- JSON files use 2-space indentation, no tabs, exactly one trailing newline.
+- JSONL files contain one valid JSON object per line.
+- Files under `examples/ingestion-trace/{hoard,quarantine}/` start with a
+  ULID-shaped prefix.
+- Markdown files with frontmatter (`---\n...\n---`) parse cleanly.
+- Internal markdown links (relative paths) point to files that exist.
+- No `TODO` / `FIXME` / `XXX` markers in `schemas/`.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs the same two scripts on every push and PR.
+If CI is red, the PR doesn't merge. The workflow installs only `jsonschema`
+and `pyyaml` — no other dependencies — so the loop is identical locally.
+
+Every PR that touches `schemas/`, `examples/`, or `tools/` MUST pass both
+locally before merge. The validator is deliberately a thing contributors
+*read* (and can paste back into review), not just a thing that runs.
 
 ## What gets rejected fast
 

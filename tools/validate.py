@@ -158,6 +158,17 @@ def run(repo_root: Path) -> bool:
             continue
         validate(data, "schemas/backpack-item.schema.json", rel)
 
+    # Structural lint (delegates to tools/lint.py).
+    print()
+    try:
+        import lint  # type: ignore
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import lint  # type: ignore
+    lint_ok = lint.run(repo_root)
+    if not lint_ok:
+        ok = False
+
     print()
     print("ALL PASSED" if ok else "FAILURES PRESENT")
     return ok
