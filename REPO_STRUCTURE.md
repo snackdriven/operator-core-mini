@@ -1,6 +1,6 @@
 # Repo Structure
 
-This is a proposed structure for the `operator-core` repo based on the synthesized documentation set and the architecture it describes.[cite:1][cite:2][code_file:213][web:105]
+This is a proposed structure for the `operator-core` repo based on the synthesized documentation set and the architecture it describes.
 
 ## Minimal docs-first structure
 
@@ -19,7 +19,7 @@ operator-core/
     └── 07-future-direction.md
 ```
 
-Use this if the repo is only meant to preserve the vision and architecture for now.[cite:1][cite:2]
+Use this if the repo is only meant to preserve the vision and architecture for now.
 
 ## Recommended structure for the next phase
 
@@ -88,8 +88,8 @@ operator-core/
 
 ### Root files
 
-- `README.md` — short repo introduction and map.[cite:1][cite:2]
-- `MANIFESTO.md` — the top-level statement of purpose and throughline.[code_file:213][code_file:214]
+- `README.md` — short repo introduction and map.
+- `MANIFESTO.md` — the top-level statement of purpose and throughline.
 - `REPO_STRUCTURE.md` — this file.
 - `ROADMAP.md` — concrete implementation sequencing once building starts.
 - `CONTRIBUTING.md` — rules for future changes so the philosophy does not drift.
@@ -107,11 +107,11 @@ This is the durable design record.
 
 This folder should define the data contracts for the memory ecology.
 
-- `backpack.schema.json` — active carry-state items.[cite:1]
-- `doctrine.schema.json` — stable truths, defaults, routing, identity.[code_file:214]
-- `hoard-item.schema.json` — archive items, transcripts, notes, artifacts.[web:105]
+- `backpack.schema.json` — active carry-state items.
+- `doctrine.schema.json` — stable truths, defaults, routing, identity.
+- `hoard-item.schema.json` — archive items, transcripts, notes, artifacts.
 - `renderer-hints.schema.json` — metadata telling renderers how an item can surface.
-- `freshness-policy.schema.json` — TTL, pinning, replace-in-place, review windows.[cite:1]
+- `freshness-policy.schema.json` — TTL, pinning, replace-in-place, review windows.
 
 ### examples/
 
@@ -132,28 +132,28 @@ Examples:
 - `daily-brief.md`
 - `statusline-summary.md`
 
-These are not the center of the system; they are clients of the truth layer.[code_file:213][code_file:214]
+These are not the center of the system; they are clients of the truth layer.
 
 ### ingestion/
 
 This is where ingestion logic or specs would live.
 
 Potential subfolders:
-- `scratch-pad/` for work artifact ingestion.[cite:1]
-- `narrator/` for task/vault/theme-related ingestion.[code_file:210][code_file:214]
-- `journal/` for life-state notes.[cite:37]
-- `transcripts/` for meeting/session archives.[web:105]
+- `scratch-pad/` for work artifact ingestion.
+- `narrator/` for task/vault/theme-related ingestion.
+- `journal/` for life-state notes.
+- `transcripts/` for meeting/session archives.
 
 ### renderers/
 
 This folder is for downstream surfaces.
 
 Potential subfolders:
-- `dashboard/` for qa-brain-style current work rendering.[cite:2]
-- `narrator/` for role-first, skin-second adaptive voice rendering.[code_file:213]
-- `statusline/` for compact terminal context.[web:4][web:199]
-- `session-primer/` for assistant continuity bootstraps.[web:105]
-- `daily-brief/` for resume and planning surfaces.[cite:1]
+- `dashboard/` for qa-brain-style current work rendering.
+- `narrator/` for role-first, skin-second adaptive voice rendering.
+- `statusline/` for compact terminal context.
+- `session-primer/` for assistant continuity bootstraps.
+- `daily-brief/` for resume and planning surfaces.
 
 ## Suggested starting point
 
@@ -169,4 +169,4 @@ operator-core/
 └── examples/
 ```
 
-That is enough to preserve the philosophy, define the data model, and give future implementation work a stable landing zone without prematurely forcing a full code architecture.[cite:1][cite:2][web:105]
+That is enough to preserve the philosophy, define the data model, and give future implementation work a stable landing zone without prematurely forcing a full code architecture.
