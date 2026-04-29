@@ -1,0 +1,121 @@
+# Ingestion — Overview
+
+How outside systems feed the three-layer substrate (Backpack, Doctrine, Hoard)
+without violating the operator-core principles: local-first, inspectable,
+editable by hand, support over surveillance, facts stable / framing adaptive.
+
+## What ingestion is and isn't
+
+Ingestion is the set of **specifications** for how raw material from outside
+systems becomes typed, dated, freshness-aware records in the substrate. It is
+not a runtime, a pipeline framework, or a daemon. Any implementation is free to
+be a shell script, a cron job, a manual paste, a hook, or nothing.
+
+Phase 3 documents the **contracts**. Phase 4 builds the renderers that read
+them. Implementation of the ingestion code itself is deliberately unscheduled.
+
+## The universal contract
+
+Every ingestion pathway, regardless of source, MUST follow the same five steps.
+Skipping steps is what produces drift, duplication, and silent loss — the three
+things this whole architecture exists to prevent.
+
+```
+┌────────────┐    ┌──────────┐    ┌───────────┐    ┌────────┐    ┌───────┐
+│  Source    │ -> │ Validate │ -> │ Normalize │ -> │ Write  │ -> │ Index │
+│  adapter   │    │ (schema) │    │ (contract)│    │ (layer)│    │ (gen) │
+└────────────┘    └──────────┘    └───────────┘    └────────┘    └───────┘
+                                                        │
+                                                        ▼
+                                               ┌──────────────────┐
+                                               │ Emit ingestion   │
+                                               │ event (audit)    │
+                                               └──────────────────┘
+```
+
+1. **Source adapter** — pulls or receives raw material from a specific system
+   (scratch-pad file change, narrator vault export, life-state write, meeting
+   transcript drop). One adapter per source. Small.
+2. **Validate** — raw material is checked against the per-item schema
+   (`backpack-item.schema.json`, `doctrine-entry.schema.json`, or
+   `hoard-item.schema.json`) after an optional adapter-specific parse.
+   Validation failure MUST NOT silently drop; it MUST produce an ingestion
+   event with status `rejected` and the raw material set aside in a
+   quarantine path.
+3. **Normalize** — apply the rules defined in this folder: dated entries,
+   freshness class, memory class, scope, renderer hints, replacement chains,
+   consent gating. Normalization is deterministic: the same input MUST produce
+   the same output.
+4. **Write** — emit to the correct layer's filesystem location (per the
+   README layout). For Backpack and Doctrine that's one file per id. For
+   Hoard it's `YYYY/MM/DD/<id>.json` plus an append to `_hoard.jsonl`.
+5. **Index** — trigger `bp build` (or equivalent) to regenerate the
+   layer's `_index.json` / `*.lock.json` so renderers see the change.
+
+An audit event is emitted at the end of the pipeline — see
+`ingestion-event.schema.json`. This is the only new schema Phase 3 adds.
+
+## Invariants every pathway must preserve
+
+These are non-negotiable. If a pathway can't honor them, it doesn't ship.
+
+- **Every written item has an explicit YYYY-MM-DD date.** Either in the id or
+  in the first line of the value/body. Enforced by
+  `freshness-policy.rules.require_dated_entries`.
+- **Write-once for Hoard.** Hoard items are immutable after capture. Errata are
+  new Hoard entries that reference the original, never edits.
+- **Replace-in-place for Backpack.** When a Backpack item is superseded, emit a
+  new file and move the predecessor to `_replaced/`. Never append versions into
+  one file; let git hold the edit history.
+- **Low-churn for Doctrine.** Doctrine should not be touched by automated
+  ingestion without `stability: evolving` on the target entry. High-churn
+  truths belong in Backpack, not Doctrine. If an adapter wants to update
+  Doctrine, it MUST emit a `doctrine-proposed` event rather than writing
+  directly; the user approves the change.
+- **Consent gate before life-state surfaces.** Any item with
+  `scope: life` or `requires_consent: true` is written to Hoard normally but
+  MUST NOT be promoted to Backpack or included in renderer indexes without an
+  explicit consent token for the surface. Details in `03-life-state.md`.
+- **Idempotent writes.** Re-running an adapter over the same source MUST NOT
+  produce duplicates. Adapters use stable ids (content hash or source ref) and
+  check for existing items before writing.
+
+## The four pathways
+
+| Source | Feeds | Doc |
+|---|---|---|
+| `scratch-pad` (dailies, dashboard, hooks, backpack_memory, artifacts) | Backpack (primary), Hoard (artifacts, dailies) | [01-scratch-pad.md](./01-scratch-pad.md) |
+| narrator + workspace-narrator (vault, themes, runtime, identity) | Doctrine (primary), Backpack (active narrator state) | [02-narrator.md](./02-narrator.md) |
+| life-state tools (inside-weather, margin, meat-suit, dysfunction-center) | Hoard (journal, weather), Backpack (ambient cue only, consent-gated) | [03-life-state.md](./03-life-state.md) |
+| transcripts / session summaries (Claude sessions, meetings, EOD) | Hoard (raw + summary), Backpack (promoted summary when relevant) | [04-transcripts.md](./04-transcripts.md) |
+
+Movement *between* layers once items exist — promotion, demotion, archival,
+retirement — is covered separately in [05-promotion-demotion.md](./05-promotion-demotion.md).
+
+## What is not ingestion
+
+- **Renderer reads.** Renderers never call adapters; they read the generated
+  indexes only. Keeps renderers fast and ingestion replaceable.
+- **Manual hand-edits.** Editing a `backpack/current/*.md` by hand is first-
+  class and does not go through the pipeline. The pipeline exists for bulk or
+  automated sources.
+- **Search.** Search reads the Hoard directly (ripgrep, grep, jq). It does not
+  participate in ingestion.
+
+## Audit: the one new schema
+
+Every successful or rejected ingestion MUST emit one event conforming to
+`ingestion-event.schema.json`. Events are JSONL, appended to
+`hoard/_ingestion-events.jsonl`. They are a Hoard artifact in their own
+right — they answer "why is this here?" and "what was dropped?"
+
+See `examples/ingestion-trace/events/events.jsonl` for a worked example.
+
+## Out of scope for Phase 3
+
+- The adapter code itself.
+- Any daemon or scheduler.
+- Real-time ingestion. All pathways are batch-oriented unless a specific
+  adapter documents otherwise.
+- Encryption at rest. Local-first assumes the filesystem is trusted; consent
+  gating is the privacy mechanism, not encryption.

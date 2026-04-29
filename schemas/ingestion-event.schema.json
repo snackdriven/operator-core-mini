@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://snackdriven.dev/operator-core/schemas/ingestion-event.schema.json",
+  "title": "IngestionEvent",
+  "description": "Audit record emitted by every ingestion or lifecycle operation. Events live in hoard/_ingestion-events.jsonl (one JSON object per line) and are the answer to 'why is this item here?' or 'why did this disappear?' Events are append-only; errata are new events that reference the original by id.",
+  "type": "object",
+  "required": ["id", "timestamp", "kind", "status", "source"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$",
+      "description": "Stable event id. ULID recommended."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the operation completed (or was rejected)."
+    },
+    "kind": {
+      "type": "string",
+      "description": "Lifecycle operation or ingestion step this event records.",
+      "enum": [
+        "ingested",
+        "ingested-duplicate",
+        "rejected",
+        "superseded-by-hand",
+        "hint-observed",
+        "promote",
+        "replace",
+        "demote",
+        "promote-to-doctrine",
+        "doctrine-proposed",
+        "pin",
+        "unpin",
+        "vault-version-imported",
+        "migration-summary"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "skipped", "rejected", "proposed"],
+      "description": "ok = written; skipped = idempotent no-op; rejected = validation or policy failure; proposed = change requires user approval (Doctrine)."
+    },
+    "source": {
+      "type": "object",
+      "required": ["adapter"],
+      "properties": {
+        "adapter": {
+          "type": "string",
+          "description": "Adapter id (e.g. 'scratch-pad.dashboard-manifest', 'narrator.themes', 'life-state.inside-weather', 'transcripts')."
+        },
+        "ref": {
+          "type": "string",
+          "description": "Pointer to the source material (file path, URL, session id)."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Content hash of the source when applicable (used for dedup)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "description": "Where the event wrote (or would have written) its result.",
+      "properties": {
+        "layer": {
+          "type": "string",
+          "enum": ["backpack", "doctrine", "hoard", "policy", "none"]
+        },
+        "id": { "type": "string" },
+        "path": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "from": {
+      "type": "object",
+      "description": "Present on lifecycle events (promote, replace, demote). Describes the predecessor.",
+      "properties": {
+        "layer": { "type": "string", "enum": ["backpack", "doctrine", "hoard"] },
+        "id": { "type": "string" },
+        "path": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "to": {
+      "type": "object",
+      "description": "Present on lifecycle events. Describes the successor.",
+      "properties": {
+        "layer": { "type": "string", "enum": ["backpack", "doctrine", "hoard"] },
+        "id": { "type": "string" },
+        "path": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable reason. Required for rejected, demote, doctrine-proposed, superseded-by-hand."
+    },
+    "diff": {
+      "type": "string",
+      "description": "Unified diff. Required on doctrine-proposed events."
+    },
+    "stats": {
+      "type": "object",
+      "description": "Optional counts for bulk operations (migration-summary, vault-version-imported).",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "event_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Ids of prior events this one relates to (erratum, retry, resolution)."
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who or what triggered the event. 'system' for automated ingestion, 'user' for explicit user actions, or an adapter id."
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "rejected" } }, "required": ["kind"] },
+      "then": { "required": ["reason"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "doctrine-proposed" } }, "required": ["kind"] },
+      "then": { "required": ["reason", "diff"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "demote" } }, "required": ["kind"] },
+      "then": { "required": ["reason", "from", "to"] }
+    },
+    {
+      "if": { "properties": { "kind": { "enum": ["promote", "replace", "promote-to-doctrine"] } }, "required": ["kind"] },
+      "then": { "required": ["from", "to"] }
+    }
+  ]
+}

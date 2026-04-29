@@ -29,7 +29,7 @@ ingestion-trace/
 │   └── _replaced/
 │       └── meetings-2026-04-06-q2-roadmap.md   ← Backpack: predecessor (kept in git)
 ├── events/
-│   └── events.jsonl                ← 19 ingestion events covering every kind in the schema enum
+│   └── events.jsonl                ← 21 ingestion events covering every kind in the schema enum
 ├── quarantine/
 │   ├── 01HW-EVT-0010-rejected.json     ← schema-violation rejection (failed pattern + null value)
 │   └── 01HW-EVT-0012-rejected.json     ← consent-violation rejection (consent-health-data forbidden); raw payload deliberately not stored
@@ -84,7 +84,7 @@ silently fail and Doctrine cannot silently change.
 
 ## Lifecycle chains in the events log
 
-Beyond the Q2 meeting story, `events/events.jsonl` carries two additional
+Beyond the Q2 meeting story, `events/events.jsonl` carries additional
 complete chains so all 14 event kinds are exercised:
 
 - **Transcripts pathway with consent gate** (events `0013`–`0014`): a
@@ -98,14 +98,22 @@ complete chains so all 14 event kinds are exercised:
 - **`superseded-by-hand`** (event `0019`): the user hand-edits an
   evergreen-reference (team roster) in place. No new file, no replacement
   chain — just an audit event.
+- **Doctrine approval close-the-loop** (event `0020`): the operator
+  approves the `doctrine-proposed` change from event `0009`. A
+  `promote-to-doctrine` event records the approval, links back via
+  `event_refs`, and the `from`/`to` pair shows the proposal moving from
+  the holding area into Doctrine proper.
+- **Narrator-vault bi-weekly re-import** (event `0021`): a
+  `vault-version-imported` event records a scheduled vault refresh with
+  full `stats` (files seen, imported, excluded by frontmatter, excluded
+  by path, duplicates skipped). The exclusion counts demonstrate the
+  `consent-narrator-vault` opt-out posture in action.
 
 Together with the Q2 meeting chain, this trace exercises every kind in
-`ingestion-event.schema.json` (`ingested`, `ingested-duplicate`, `rejected`,
-`superseded-by-hand`, `hint-observed`, `promote`, `replace`, `demote`,
-`doctrine-proposed`, `pin`, `unpin`, `migration-summary`). The two unused
-kinds in this fixture — `promote-to-doctrine` and `vault-version-imported`
-— are documented in `docs/ingestion/05-promotion-demotion.md` and
-`docs/ingestion/02-narrator.md` respectively.
+`ingestion-event.schema.json` (all 14: `ingested`, `ingested-duplicate`,
+`rejected`, `superseded-by-hand`, `hint-observed`, `promote`, `replace`,
+`demote`, `promote-to-doctrine`, `doctrine-proposed`, `pin`, `unpin`,
+`vault-version-imported`, `migration-summary`).
 
 ## Validation
 
@@ -113,7 +121,7 @@ kinds in this fixture — `promote-to-doctrine` and `vault-version-imported`
 - The two Backpack frontmatter files validate against
   `schemas/backpack-item.schema.json` (after stripping the `---` fences and
   parsing YAML).
-- Every line in `events/events.jsonl` (19 records) validates against
+- Every line in `events/events.jsonl` (21 records) validates against
   `schemas/ingestion-event.schema.json`.
 - `quarantine/*.json` and `doctrine-proposals/*.md` are reference artifacts;
   they are not part of any layer schema and do not need to validate. Run

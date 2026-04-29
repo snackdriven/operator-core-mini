@@ -1,0 +1,29 @@
+{
+  "rejected_at": "2026-04-29T16:12:04Z",
+  "event_id": "01HW-EVT-0012",
+  "adapter": "transcripts.calendar-recorder",
+  "source_ref": "calendar-event:abc123#transcript",
+  "schema_violated": null,
+  "rejection_reason": "consent-violation",
+  "consent_policy": "consent-health-data",
+  "consent_check": {
+    "scope": "health-records",
+    "posture": "forbidden",
+    "matched_signals": [
+      "transcript contains medication name 'sertraline'",
+      "transcript contains provider name 'Dr. Patel'",
+      "calendar event title contains 'therapy'"
+    ],
+    "rationale": "consent-health-data declares posture=forbidden for scope=health-records across all pathways. The transcripts adapter MUST short-circuit before storage."
+  },
+  "validation_errors": [],
+  "raw_payload": {
+    "redacted": true,
+    "note": "raw payload intentionally NOT stored. Consent-violation rejections must not preserve the source content, even in quarantine. Only the calendar-event id is retained for operator audit."
+  },
+  "next_steps": [
+    "operator reviews this quarantine entry during weekly consent audit",
+    "no remediation expected: the policy worked as designed",
+    "if the rejection is a false positive (e.g. the meeting title contained 'therapy' incidentally), update consent-health-data with a more specific signal list, then DELETE this file (no event needed; quarantine is not part of the substrate)"
+  ]
+}
