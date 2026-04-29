@@ -38,14 +38,20 @@ Goal: identify how existing systems would feed the substrate.
 - Document life-state tools → Backpack / Hoard ingestion rules.
 - Document transcript and session summary → Hoard ingestion rules.
 
-## Phase 4 — Build the first renderer prototypes
+## Phase 4 — Build the first renderer prototypes ✅ shipped (2026-04-29)
 
 Goal: prove that one truth layer can support multiple surfaces.
 
-- Build a simple session primer renderer for assistant bootstrapping.
-- Build a daily brief renderer from Backpack + Doctrine.
-- Build a narrator-context renderer that answers “how should the truth be carried today?”
-- Build a tiny statusline-oriented summary renderer for compact ambient cues.
+The renderer prototypes are implemented in the companion `operator-core-schemas` working repo. All five surfaces project from a single deterministic `FactBundle` (per ADR 0003) and are covered by golden tests under `tools/test_renderers.py` (two-tier check: structural fingerprint + snapshot).
+
+- ✅ `renderers/session_primer.py` — assistant bootstrapping primer.
+- ✅ `renderers/daily_brief.py` — daily brief from Backpack + Doctrine.
+- ✅ `renderers/narrator_list.py` — template-driven, deterministic narrator surface (carries the active voice rule).
+- ✅ `renderers/narrator_brief.py` — prompt-driven narrator surface; renderer emits a versioned prompt artefact for an LLM (ADR 0005 clarification 2026-04-29).
+- ✅ `renderers/statusline.py` — compact ambient cue.
+- ✅ Voice-rule + routing-rule selection (ADR 0005), including an `--energy` regression test that flips skin via routing.
+
+Open follow-ups tracked in the working repo's `docs/PLAN-followups-2026-04-29.md`.
 
 ## Phase 5 — Evaluate and prune
 
