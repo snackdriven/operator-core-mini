@@ -45,6 +45,67 @@
       "applies_to": ["narrator"]
     },
     {
+      "id": "calendar-meeting-routing",
+      "kind": "routing-rule",
+      "title": "Route in-progress meetings to session-primer; finished meetings to daily-brief",
+      "body": "Meetings whose end_time is in the future surface in session-primer with full context. Meetings whose end_time has passed surface in the next daily-brief, then demote.",
+      "routing": {
+        "when": "item.kind=meeting-context",
+        "prefer_renderer": "session-primer"
+      },
+      "applies_to": ["session-primer", "daily-brief"]
+    },
+    {
+      "id": "narrator-good-place-skin",
+      "kind": "voice-rule",
+      "title": "Narrator skin: Good Place",
+      "body": "Warm, low-demand, gently absurd. Frame work in terms of next small step rather than backlog size. Treat life-state with care: never escalate, never minimize.",
+      "pinned": true,
+      "stability": "evolving",
+      "voice": {
+        "skin": "good-place",
+        "scope": ["narrator-brief"],
+        "register": "warm",
+        "do": [
+          "lead with the body check when life-state is present",
+          "name the smallest next step before the backlog",
+          "acknowledge that yesterday is already filed"
+        ],
+        "avoid": [
+          "ranked priority lists",
+          "hustle vocabulary",
+          "comic reframing of medical or health items"
+        ],
+        "facts_stable": true
+      },
+      "applies_to": ["narrator-brief"]
+    },
+    {
+      "id": "narrator-mass-effect-skin",
+      "kind": "voice-rule",
+      "title": "Narrator skin: Mass Effect (Shepard mission brief)",
+      "body": "Tactical, terse, missioncentric. Frame the day as a mission with clearly named objectives. Same facts as the warm skin; different register.",
+      "pinned": false,
+      "stability": "evolving",
+      "voice": {
+        "skin": "mass-effect",
+        "scope": ["narrator-brief"],
+        "register": "terse",
+        "do": [
+          "open with mission name (the day's primary objective)",
+          "label items as primary / secondary / standby",
+          "close with a one-line situation report"
+        ],
+        "avoid": [
+          "warm filler language",
+          "any change to facts or counts",
+          "escalating life-state into mission-critical framing"
+        ],
+        "facts_stable": true
+      },
+      "applies_to": ["narrator-brief"]
+    },
+    {
       "id": "github-source-of-truth",
       "kind": "policy",
       "title": "GitHub is the source of truth",

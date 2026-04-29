@@ -1,30 +1,59 @@
-# Operator Core
+# operator-core-schemas
 
-This is the design documentation for a local, inspectable side-brain: something that carries the right context forward, keeps important state visible, and gives back reality in a usable form.
+Schemas, examples, and ingestion specifications for the
+[operator-core-mini](https://github.com/snackdriven/operator-core-mini) substrate.
 
-It's not a single app. It captures what's consistent across `scratch-pad`, `qa-brain`, `narrator`, Backpack, life-state tools, and Claude continuity experiments, then documents the architecture those experiments point toward.
+## Layout
 
-## What lives here
+```
+operator-core-schemas/
+├── schemas/          JSON Schemas (Draft 2020-12) for Backpack / Doctrine / Hoard
+│   └── README.md     schema-level docs + coverage table
+├── examples/         sample payloads validating against the schemas
+│   ├── renders/      four renderer outputs over one shared state
+│   └── ingestion-trace/   one entry's full lifecycle across three layers
+├── tools/            reference scripts: validate.py, migrate.py, bp_build.py
+├── CONTRIBUTING.md   how to change anything in this repo
+└── docs/
+    ├── ingestion/    Phase 3 — how outside systems feed the substrate
+    │   ├── 00-overview.md
+    │   ├── 01-scratch-pad.md
+    │   ├── 02-narrator.md
+    │   ├── 03-life-state.md
+    │   ├── 04-transcripts.md
+    │   └── 05-promotion-demotion.md
+    └── decisions/    lightweight ADRs for load-bearing choices
+        ├── 0001-backpack-is-active-carry-state.md
+        ├── 0002-doctrine-vs-hoard.md
+        └── 0003-renderers-over-one-truth-layer.md
+```
 
-- `MANIFESTO.md`: why this work exists and what it keeps trying to solve.
-- `docs/01-manifesto.md`: the longer version, included for internal continuity.
-- `docs/02-system-architecture.md`: the Backpack / Doctrine / Hoard model and how renderers fit in.
-- `docs/03-repo-map.md`: how existing repos map onto the architecture.
-- `docs/04-backpack-analysis.md`: a close read of `backpack.json` and what it implies for working memory design.
-- `docs/05-narrator-analysis.md`: how narrator, workspace-narrator, and the vault files fit in.
-- `docs/06-design-principles.md`: design and UX principles that show up consistently across the work.
-- `docs/07-future-direction.md`: what to build next without losing the thread.
+## Roadmap status
 
-## Core idea
+| Phase | Status | Notes |
+|---|---|---|
+| [Phase 0](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-0--preserve-the-synthesis) — preserve synthesis | done (upstream) | in `operator-core-mini` |
+| [Phase 1](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-1--define-the-substrate) — define substrate | **done** | 8 schemas in `schemas/` |
+| [Phase 2](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-2--add-examples) — add examples | **done** | examples + renderer outputs + ingestion trace |
+| [Phase 3](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-3--define-ingestion-pathways) — define ingestion | **done** | 6 docs + ingestion-event schema |
+| Phase 4 — renderer prototypes | not started | |
+| Phase 5 — evaluate and prune | not started | |
 
-Three layers of memory, plus renderers on top.
+## Start here
 
-- Backpack: active carry-state, freshness-managed. What stays near.
-- Doctrine: stable truths, defaults, routing rules, identity. What stays true.
-- Hoard: transcripts, scraps, notes, history, artifacts. What stays kept.
+- Philosophy: [operator-core-mini/MANIFESTO.md](https://github.com/snackdriven/operator-core-mini/blob/main/MANIFESTO.md)
+- Layers: [schemas/README.md](./schemas/README.md)
+- Ingestion contract: [docs/ingestion/00-overview.md](./docs/ingestion/00-overview.md)
+- Lifecycle: [docs/ingestion/05-promotion-demotion.md](./docs/ingestion/05-promotion-demotion.md)
+- Decisions: [docs/decisions/README.md](./docs/decisions/README.md)
+- Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- Validate: `python tools/validate.py`
 
-Dashboards, narrators, Claude bootstraps, statuslines, daily briefs, future UIs are all renderers over that substrate.
+## Architecture decisions
 
-## Status
+The load-bearing choices behind the substrate, with alternatives and
+consequences:
 
-Documentation and design only. The point is to have the synthesis written down so future implementation has something real to aim at.
+- [ADR 0001](./docs/decisions/0001-backpack-is-active-carry-state.md) — Backpack is active carry-state, not recent memory.
+- [ADR 0002](./docs/decisions/0002-doctrine-vs-hoard.md) — Doctrine and Hoard are different layers, not different views.
+- [ADR 0003](./docs/decisions/0003-renderers-over-one-truth-layer.md) — Renderers over one truth layer; not one truth per surface.

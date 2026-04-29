@@ -1,0 +1,33 @@
+{
+  "rejected_at": "2026-04-29T15:45:30Z",
+  "event_id": "01HW-EVT-0010",
+  "adapter": "scratch-pad.dashboard-manifest",
+  "source_ref": "dashboard-manifest.json#days[0].tickets.TTOAD-XYZ",
+  "schema_violated": "backpack-item.schema.json",
+  "validation_errors": [
+    {
+      "path": "$.id",
+      "message": "ticket id 'TTOAD-XYZ' does not match pattern '^[a-z0-9][a-z0-9_-]*$' (uppercase + placeholder string)"
+    },
+    {
+      "path": "$.value",
+      "message": "missing required string after normalization (was null)"
+    }
+  ],
+  "raw_payload": {
+    "id": "TTOAD-XYZ",
+    "title": "TBD ticket from manifest",
+    "value": null,
+    "memory_class": "expiring-tactical",
+    "scope": "work",
+    "_meta": {
+      "created_at": "2026-04-29T15:45:30Z",
+      "source_path": "dashboard-manifest.json#days[0].tickets.TTOAD-XYZ"
+    }
+  },
+  "next_steps": [
+    "operator reviews quarantined entry during next dashboard-manifest pass",
+    "either: fix the manifest entry upstream and let the adapter re-ingest",
+    "or: explicitly delete this quarantine file (no event needed; quarantine is not part of the substrate)"
+  ]
+}

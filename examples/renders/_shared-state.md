@@ -49,5 +49,7 @@ this; others MUST omit it.
 
 - `session-brief.sample.md` — assistant bootstrap context.
 - `daily-brief.sample.md` — morning resumption surface.
-- `narrator-brief.sample.md` — narrator-rendered version of the same facts.
+- `narrator-brief.sample.md` — narrator-rendered version (Good Place skin).
+- `narrator-brief.mass-effect.sample.md` — same facts, Mass Effect skin
+  (proves facts-stable / framing-adapts: only the `voice-rule` differs).
 - `statusline.sample.txt` — single-line ambient cue.

@@ -18,6 +18,7 @@
         "default",
         "workflow",
         "routing-rule",
+        "voice-rule",
         "evergreen-reference",
         "policy",
         "vocabulary"
@@ -47,6 +48,42 @@
         "prefer_renderer": { "type": "string" },
         "narrator": { "type": "string" },
         "tone": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "voice": {
+      "type": "object",
+      "description": "Optional voice/skin definition, used when kind = 'voice-rule'. Renderers consult this to translate the same facts into the configured tone without changing the underlying state.",
+      "properties": {
+        "skin": {
+          "type": "string",
+          "description": "Short id for the skin (e.g. 'good-place', 'borderlands', 'neutral')."
+        },
+        "scope": {
+          "type": "array",
+          "description": "Renderer/surface ids the voice rule applies to (e.g. 'narrator-brief'). Empty = applies anywhere narrator voice is requested.",
+          "items": { "type": "string" }
+        },
+        "register": {
+          "type": "string",
+          "enum": ["warm", "neutral", "clinical", "playful", "terse"],
+          "description": "Coarse tonal register. Renderers may map this to LLM prompts or template variants."
+        },
+        "do": {
+          "type": "array",
+          "description": "Affirmative voice rules ('lead with the body check', 'name the smallest next step').",
+          "items": { "type": "string" }
+        },
+        "avoid": {
+          "type": "array",
+          "description": "Things this voice must not do ('no ranked priority lists', 'no hustle vocabulary').",
+          "items": { "type": "string" }
+        },
+        "facts_stable": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true (the default), the voice rule MUST NOT alter underlying facts when reframing them."
+        }
       },
       "additionalProperties": false
     },

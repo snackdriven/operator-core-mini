@@ -17,7 +17,7 @@ a single ingestion event, or one row in a stream.
 | File | Purpose |
 |---|---|
 | `backpack-item.schema.json` | One Backpack entry. Accepts raw string (legacy) or structured object. |
-| `doctrine-entry.schema.json` | One Doctrine entry (identity, default, workflow, routing-rule, policy, vocabulary, evergreen-reference). |
+| `doctrine-entry.schema.json` | One Doctrine entry (identity, default, workflow, routing-rule, voice-rule, evergreen-reference, policy, vocabulary). |
 | `hoard-item.schema.json` | One Hoard record. Hoard files are JSONL where each line validates against this schema. |
 
 ### Aggregate schemas (validate a whole layer at once)
@@ -34,6 +34,7 @@ a single ingestion event, or one row in a stream.
 | `renderer-hints.schema.json` | Optional metadata attached to any item telling renderers how it is allowed to surface. Referenced by every per-item schema. |
 | `freshness-policy.schema.json` | Declarative version of the rules currently expressed in prose inside `backpack-freshness-guide`. Bands, TTL presets, verify-after windows, replace-in-place rules. |
 | `index.schema.json` | The generated, single-shot read snapshots (`backpack/_index.json`, `doctrine/doctrine.lock.json`, `hoard/_hoard.jsonl` index). Machine-written; never hand-edited. |
+| `ingestion-event.schema.json` | Audit record emitted by every ingestion or lifecycle operation. Appended to `hoard/_ingestion-events.jsonl`. |
 
 ## Layer mapping
 
@@ -90,9 +91,9 @@ Migration to the per-file layout is a content move, not a schema break.
 | `examples/backpack-item.sample.json` | `backpack-item.schema.json` | Single structured item with full metadata. |
 | `examples/backpack-item.frontmatter.md` | `backpack-item.schema.json` (frontmatter) | File-system-as-database form: YAML frontmatter + body. |
 | `examples/backpack-index.sample.json` | `index.schema.json` | Generated, machine-written snapshot for renderers. |
-| `examples/doctrine.sample.json` | `doctrine.schema.json` | Whole document. Covers all 7 doctrine kinds (identity, default, workflow, routing-rule, evergreen-reference, policy, vocabulary). |
+| `examples/doctrine.sample.json` | `doctrine.schema.json` | Whole document. Covers all 8 doctrine kinds (identity, default, workflow, routing-rule, voice-rule, evergreen-reference, policy, vocabulary). |
 | `examples/doctrine-entry.sample.json` | `doctrine-entry.schema.json` | Single routing-rule entry. |
-| `examples/hoard-sample.jsonl` | `hoard-item.schema.json` | 9 records covering 9 of 11 kinds (transcript, transcript-summary, note, scrap, journal-entry, artifact, timeline-event, session-summary, imported-memory). |
+| `examples/hoard-sample.jsonl` | `hoard-item.schema.json` | 11 records covering all 11 kinds (transcript, transcript-summary, note, scrap, screenshot, log, journal-entry, artifact, timeline-event, session-summary, imported-memory). |
 | `examples/freshness-policy.sample.json` | `freshness-policy.schema.json` | All 5 freshness bands with treatments, TTL presets, promote/demote thresholds. |
 
 ### Renderer outputs (`examples/renders/`)
@@ -105,6 +106,7 @@ layer, many renderers." Shared inputs documented in `_shared-state.md`.
 | `renders/session-brief.sample.md` | Assistant bootstrap | Pinned doctrine + current carry-state + verify-before-acting + aged-out section. |
 | `renders/daily-brief.sample.md` | Morning resumption | Today / near-today / verify / aged-out / week / month bands. |
 | `renders/narrator-brief.sample.md` | Narrator (Good Place skin) | Same facts; warm low-demand tone; respects writing-preferences and life-state consent gate. |
+| `renders/narrator-brief.mass-effect.sample.md` | Narrator (Mass Effect skin) | Same facts as above, terse mission-brief register; proves facts-stable / framing-adapts via the `voice-rule` Doctrine entry. |
 | `renders/statusline.sample.txt` | Single-line ambient cue | ~80 char budget; demonstrates RendererHints `priority` and `max_chars_in`. |
 
 ### Ingestion trace (`examples/ingestion-trace/`)
@@ -125,20 +127,25 @@ directory convention for retired carry-state.
 
 ## Validating
 
-Python + `jsonschema`:
+From the repo root:
 
-```python
-import json
-from jsonschema import Draft202012Validator
-
-schema = json.load(open("schemas/backpack-item.schema.json"))
-data = json.load(open("examples/backpack-item.sample.json"))
-Draft202012Validator(schema).validate(data)
+```bash
+python tools/validate.py
 ```
+
+This self-validates every schema and validates every example payload
+against its declared schema. See [`../tools/validate.py`](../tools/validate.py)
+for the loader behavior (frontmatter merge, ISO-date string handling,
+fresh resolver per check).
 
 ## Status
 
-Phase 1 of the [roadmap](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-1--define-the-substrate):
-*Define the substrate.* Refactored after a design review concluded that the
-flat single-file layout would be replaced by file-system-as-database with
-generated indexes for renderer compatibility.
+Phase 1 (substrate), Phase 2 (examples), and Phase 3 (ingestion pathways) of
+the [roadmap](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md)
+are complete. Phase 3 adds `ingestion-event.schema.json` and the six docs
+under `docs/ingestion/`.
+
+The single-file `backpack.json` layout remains supported via the aggregate
+`backpack.schema.json`, but the recommended physical layout is the file-system-
+as-database form with generated indexes. See `schemas/README.md` and
+`docs/ingestion/00-overview.md`.
