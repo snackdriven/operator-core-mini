@@ -1,7 +1,7 @@
 # Session Brief — 2026-04-29 14:00 UTC
 
 > Generated from Backpack + Doctrine. Do not edit; edit the source files instead.
-> Renderer: `session-primer`. Items: 7 backpack, 9 doctrine.
+> Renderer: `session-primer`. Items: 7 backpack, 10 doctrine.
 
 ## Identity (Doctrine: pinned)
 
@@ -36,7 +36,7 @@ low-demand surfaces.
 ## Routing hints
 
 - Narrator skin: `good-place` (warm).
-- Energy routing: not triggered today. Configured: `narrator-low-energy-routing` (when=`low-energy`).
+- Energy routing: not triggered today. Configured: `narrator-high-energy-routing` (when=`high-energy`), `narrator-low-energy-routing` (when=`low-energy`).
 - Surfaces consenting to life-state: none active.
 
 ## Open threads worth knowing
