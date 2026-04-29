@@ -301,10 +301,91 @@ def applies_here(entry: dict, renderer_id: str) -> bool:
     return renderer_id in surfaces or not surfaces
 
 
+# ---------------------------------------------------------------------------
+# Per-surface item budgets
+# ---------------------------------------------------------------------------
+#
+# Backpacks tend to grow unbounded over time; without budgets the headline
+# bullet-list sections ("Near today", "What's near right now", etc.) become
+# walls of text that defeat the surface's purpose. Per-surface budgets cap
+# the rendered list and surface a `+N more` footer when truncation happens.
+# Pinned items are NEVER truncated — the operator chose them deliberately.
+#
+# Budget defaults are sized so the existing 4-item fixture renders unchanged
+# (no budget triggers when item count <= the cap). Operators can override
+# per-surface in policy/freshness.json under `renderer_budgets:`, e.g.:
+#
+#   { "renderer_budgets": { "daily-brief": { "current": 12 } } }
+
+DEFAULT_RENDERER_BUDGETS: dict[str, dict[str, int]] = {
+    "session-primer":  {"current": 12, "recent": 8,  "verify": 8,  "aged_out": 8},
+    "daily-brief":     {"current": 10, "recent": 6,  "verify": 8,  "aged_out": 8},
+    "narrator-list":   {"current": 8,  "recent": 4,  "verify": 0,  "aged_out": 4},
+    "narrator-brief":  {"current": 8,  "recent": 4,  "verify": 0,  "aged_out": 4},
+    "statusline":      {"current": 1,  "recent": 0,  "verify": 0,  "aged_out": 0},
+}
+
+
+def budget_for(renderer_id: str, slice_name: str, freshness: dict | None) -> int:
+    """Return the per-surface budget for a slice.
+
+    Looks first at policy/freshness.json `renderer_budgets`, then falls back
+    to DEFAULT_RENDERER_BUDGETS, then to a permissive default of 50.
+    """
+    overrides = (freshness or {}).get("renderer_budgets") or {}
+    o = overrides.get(renderer_id) or {}
+    if slice_name in o:
+        return int(o[slice_name])
+    d = DEFAULT_RENDERER_BUDGETS.get(renderer_id) or {}
+    if slice_name in d:
+        return int(d[slice_name])
+    return 50
+
+
+def apply_budget(items: list, budget: int) -> tuple[list, int]:
+    """Truncate ``items`` to ``budget``. Returns (kept, dropped_count).
+
+    A budget of 0 keeps everything (treat 0 as “unset”).
+    A negative budget keeps everything.
+    """
+    if not items or budget is None or budget <= 0 or len(items) <= budget:
+        return list(items), 0
+    return items[:budget], len(items) - budget
+
+
 def by_priority(entry: dict) -> int:
     """Sort key: higher renderer_hints.priority first; default 50."""
     rh = entry.get("renderer_hints") or {}
     return -int(rh.get("priority", 50))
+
+
+def by_priority_then_recency(entry: dict) -> tuple:
+    """Sort key: priority desc, then `dated` desc, then id asc for stability.
+
+    Used for headline backpack views where two items at default priority
+    (50) need a tiebreak that surfaces the most-recent first instead of
+    alphabetical-by-id (which is what the legacy migrator produces).
+    """
+    rh = entry.get("renderer_hints") or {}
+    prio = -int(rh.get("priority", 50))
+    # Reverse-sort by dated by negating the ISO string via a wrapper.
+    # Python tuple sort is ascending; we want descending dated, so emit
+    # the key as a tuple where ("~" * lack-of-dated, negated-dated).
+    dated = (entry.get("dated") or "").strip()
+    # Items with no dated land last (we treat them as oldest).
+    no_date = 1 if not dated else 0
+    # For descending dated, invert by subtracting from a high-water mark.
+    # Cleaner: use a tuple (no_date, neg_year, neg_month, neg_day).
+    if dated and len(dated) >= 10 and dated[4] == "-" and dated[7] == "-":
+        try:
+            y, m, d = int(dated[0:4]), int(dated[5:7]), int(dated[8:10])
+            recency = (-y, -m, -d)
+        except ValueError:
+            recency = (0, 0, 0)
+            no_date = 1
+    else:
+        recency = (0, 0, 0)
+    return (prio, no_date, recency, entry.get("id") or "")
 
 
 # ---------------------------------------------------------------------------
@@ -555,15 +636,15 @@ def build_fact_bundle(
     )
     current_bp = sorted(
         [b for b in backpack if b.get("freshness_class") == "current" and here(b)],
-        key=by_priority,
+        key=by_priority_then_recency,
     )
     recent_bp = sorted(
         [b for b in backpack if b.get("freshness_class") == "recent" and here(b)],
-        key=by_priority,
+        key=by_priority_then_recency,
     )
     timeline_bp = sorted(
         [b for b in backpack if b.get("memory_class") == "timeline" and here(b)],
-        key=by_priority,
+        key=by_priority_then_recency,
     )
 
     # --- Derived slices --------------------------------------------------
