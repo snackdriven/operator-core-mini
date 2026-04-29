@@ -92,7 +92,7 @@ Claude sessions end with a pre-compact hook that emits a distilled summary.
 Adapter writes:
 
 - `hoard/YYYY/MM/DD/<ulid>-session-summary.json`,
-  `kind: session-summary`, `scope: work` or `assistant` depending on the
+  `kind: session-summary`, `area: work` or `assistant` depending on the
   session's tag, `source.kind: scratch-pad` (because the hook lives there)
   or `manual` (if the user pasted).
 - No attachment; the summary is the content.
@@ -119,7 +119,7 @@ only when at least one of these conditions holds:
    purpose — false-positive promotions pollute Backpack worse than false-
    negative ones do.
 
-Promotion never happens for `scope: life` transcripts. Those stay in Hoard
+Promotion never happens for `area: life` transcripts. Those stay in Hoard
 under the life-state consent gate.
 
 ## What Backpack items derived from transcripts look like
@@ -128,7 +128,7 @@ under the life-state consent gate.
 id: meetings-YYYY-MM-DD-<label>
 freshness_class: current
 memory_class: expiring-tactical
-scope: work
+area: work
 dated: YYYY-MM-DD
 created_at: <ISO-8601>
 ttl_seconds: 1209600   # 2 weeks default for meeting summaries

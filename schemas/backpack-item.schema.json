@@ -29,7 +29,7 @@
         },
         "freshness_class": { "$ref": "#/$defs/FreshnessClass" },
         "memory_class": { "$ref": "#/$defs/MemoryClass" },
-        "scope": { "$ref": "#/$defs/Scope" },
+        "area": { "$ref": "#/$defs/Area" },
         "source": { "$ref": "#/$defs/Source" },
         "dated": {
           "type": "string",
@@ -69,6 +69,11 @@
         "replaces": {
           "type": "string",
           "description": "Id of a prior Backpack entry this one supersedes."
+        },
+        "aged_out_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 timestamp at which this item aged out of active carry-state and was demoted to the Hoard. Set ONLY on entries living under hoard/; backpack/ entries MUST NOT carry this field. Renderers use it to compute the 'aged out overnight' diff window. Per ADR 0002, do not confuse aged-out (this field) with replaced (the `replaces` field) — they are different lifecycle events."
         }
       },
       "additionalProperties": false
@@ -97,8 +102,9 @@
         "replaceable-truth"
       ]
     },
-    "Scope": {
+    "Area": {
       "type": "string",
+      "description": "Lifecycle classification — which slice of life this item belongs to. PER FOLLOW-UP #7 (2026-04-29): renamed from `scope` to disambiguate from consent.scope, which is a free-string used by consent policies. Backpack/Hoard items use `area` (this enum); consent policies use `scope` (free string, e.g. 'health-records').",
       "enum": ["work", "life", "assistant", "identity", "meta"]
     },
     "Source": {

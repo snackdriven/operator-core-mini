@@ -138,7 +138,7 @@ Every Backpack item written by scratch-pad adapters has, at minimum:
 id: <kebab-case-id>
 freshness_class: current | recent | contextual | historical | evergreen | pinned
 memory_class: expiring-tactical | replaceable-truth | pinned-doctrine | evergreen-reference | timeline
-scope: work
+area: work
 dated: YYYY-MM-DD
 created_at: ISO-8601
 ttl_seconds: <one of 604800, 1209600, 2592000, 7776000>

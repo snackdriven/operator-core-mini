@@ -1,5 +1,12 @@
 # Narrator Brief — 2026-04-29
 
+> **Note (2026-04-29 clarification on ADR 0005):** this file is
+> *expected LLM output* for the `narrator-brief` surface, not
+> deterministic renderer output. The renderer
+> (`renderers/narrator_brief.py`) emits a prompt artefact; an LLM
+> consumes that prompt and produces prose like the body below. The
+> deterministic template renderer is now `narrator-list`.
+
 > Narrator: **Good Place** (warm, low-demand). Selected because no low-energy
 > routing override fired today and writing-preferences allows neutral-warm tone.
 > Facts unchanged from session brief; framing adapted.

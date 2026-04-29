@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml  # type: ignore
@@ -88,6 +89,43 @@ def read_backpack(operator_root: Path) -> list[dict]:
         # Skip the replacement archive — those items are out of carry-state.
         if "_replaced" in path.parts:
             continue
+        fm, body = load_frontmatter(path)
+        if "value" not in fm and body:
+            fm["value"] = body
+        fm["_path"] = str(path.relative_to(operator_root))
+        entries.append(fm)
+    return entries
+
+
+def read_replaced(operator_root: Path) -> list[dict]:
+    """Read ``backpack/_replaced/*.md`` — items that were superseded by a newer
+    item in the same ``id`` family. NOTE: per ADR 0002, ``_replaced/`` is *not*
+    "aged out". Aged-out content lives in Hoard; see :func:`read_hoard`.
+    """
+    entries: list[dict] = []
+    p = operator_root / "backpack" / "_replaced"
+    if not p.is_dir():
+        return entries
+    for path in sorted(p.rglob("*.md")):
+        fm, body = load_frontmatter(path)
+        if "value" not in fm and body:
+            fm["value"] = body
+        fm["_path"] = str(path.relative_to(operator_root))
+        entries.append(fm)
+    return entries
+
+
+def read_hoard(operator_root: Path) -> list[dict]:
+    """Read every ``hoard/**/*.md`` as a Hoard entry — items that aged out of
+    active carry-state per ADR 0002. Each entry SHOULD carry an
+    ``aged_out_at`` ISO-8601 timestamp; renderers use it to decide what
+    happened "overnight" or "since last render".
+    """
+    entries: list[dict] = []
+    root = operator_root / "hoard"
+    if not root.is_dir():
+        return entries
+    for path in sorted(root.rglob("*.md")):
         fm, body = load_frontmatter(path)
         if "value" not in fm and body:
             fm["value"] = body
@@ -166,10 +204,16 @@ def consent_filter(
     kept: list[dict] = []
     omissions: list[str] = []
     for item in items:
+        # Per follow-up #7 (2026-04-29): consent.scope (a free-string)
+        # matches against an item's tags. We previously also matched
+        # against backpack-item.scope (an enum) for ergonomic reasons,
+        # but the enum values never overlap with the free strings
+        # operators write into consent policies, so the second clause
+        # was effectively dead. The enum has been renamed to `area`
+        # and is not consulted here.
         tags = set(item.get("tags") or [])
-        scope = item.get("scope") or ""
         hit_policy = next(
-            (p for p in policies if p["scope"] in tags or p["scope"] == scope),
+            (p for p in policies if p["scope"] in tags),
             None,
         )
         if hit_policy is not None:
@@ -379,3 +423,215 @@ def select_routing_rule(
         if routing.get("when") == when:
             return e
     return None
+
+
+# ---------------------------------------------------------------------------
+# Fact bundle (per-renderer projection)
+# ---------------------------------------------------------------------------
+
+# Default window for "what aged out overnight" — the daily brief looks back
+# this far when reading Hoard. Tunable per call.
+DEFAULT_AGED_OUT_WINDOW_HOURS = 36
+
+
+@dataclass(frozen=True)
+class FactBundle:
+    """The single source of truth a renderer projects from.
+
+    Per ADR 0003, all renderers share the same fact universe at time T;
+    only framing varies. This dataclass is that universe, *already filtered*
+    for the calling renderer (consent gate applied; ``applies_here`` applied
+    to the headline backpack collections). Renderers consume this directly
+    instead of re-walking the substrate; that's how we keep narrator-brief
+    and daily-brief from silently disagreeing about the fact set.
+
+    Fields with the ``_all`` suffix are unfiltered for callers that need
+    the whole picture (e.g. session-primer's pinned doctrine groupings,
+    which span all kinds and don't pre-filter by ``applies_to``).
+    """
+
+    now: datetime
+    renderer_id: str
+    operator_root: Path
+
+    # Doctrine (unfiltered). Pinned + grouped views are derived helpers below.
+    doctrine: list[dict]
+
+    # Backpack — post-consent, post-applies_here.
+    backpack: list[dict]
+    pinned_bp: list[dict]
+    current_bp: list[dict]
+    recent_bp: list[dict]
+    timeline_bp: list[dict]
+
+    # Derived slices.
+    near_today: list[dict]      # current_bp minus verify_items
+    verify_items: list[dict]    # current_bp + recent_bp where needs_verify
+    this_week: list[dict]       # recent_bp minus verify_items
+    today_lifestate: dict | None
+
+    # Diff sources.
+    replaced: list[dict]        # backpack/_replaced/ — superseded items
+    aged_out: list[dict]        # hoard/ — real aged-out (within window)
+
+    # Voice + routing (relevant for narrator-style renderers; optional).
+    voice: dict | None
+    routing: dict | None
+
+    # Consent gate output.
+    omitted_for_consent: list[str]
+    gate_messages: list[str]
+    gate_messages_short: list[str]
+
+    # Policy.
+    freshness_policy: dict | None
+
+    # Source-side counts (for renderer headers).
+    backpack_total: int = 0
+    replaced_total: int = 0
+    aged_out_total: int = 0
+
+    def pinned_doctrine_by_kind(self) -> dict[str, list[dict]]:
+        """Group pinned, applies-here Doctrine by ``kind``, sorted by priority."""
+        out: dict[str, list[dict]] = {}
+        for entry in self.doctrine:
+            if not applies_here(entry, self.renderer_id):
+                continue
+            if not entry.get("pinned", False):
+                continue
+            out.setdefault(entry["kind"], []).append(entry)
+        for kind in out:
+            out[kind].sort(key=by_priority)
+        return out
+
+
+def build_fact_bundle(
+    operator_root: Path,
+    now: datetime,
+    renderer_id: str,
+    *,
+    voice_skin_override: str | None = None,
+    energy: str | None = None,
+    aged_out_window_hours: int = DEFAULT_AGED_OUT_WINDOW_HOURS,
+) -> FactBundle:
+    """Build the per-renderer FactBundle for time ``now``.
+
+    This is the single point that calls the substrate loaders + selectors.
+    Adding a new renderer means consuming the bundle, not re-walking files.
+
+    Voice / routing selection is included here so narrator-style renderers
+    don't repeat the lookup. For renderers that don't care, the fields are
+    simply None.
+    """
+    doctrine = read_doctrine(operator_root)
+    backpack_raw = read_backpack(operator_root)
+    replaced_raw = read_replaced(operator_root)
+    hoard_raw = read_hoard(operator_root)
+    freshness = read_freshness_policy(operator_root)
+
+    # --- Consent gate ----------------------------------------------------
+    # Run the gate over the union so per-policy counts cover everything we
+    # might surface, and the renderer sees one banner per policy rather
+    # than one per substrate.
+    union_in = (
+        [("bp", b) for b in backpack_raw]
+        + [("rp", b) for b in replaced_raw]
+        + [("ho", b) for b in hoard_raw]
+    )
+    kept_combined, omitted, gate_messages = consent_filter(
+        [item for _, item in union_in], doctrine, renderer_id
+    )
+    kept_ids = {id(item) for item in kept_combined}
+    backpack = [b for b in backpack_raw if id(b) in kept_ids]
+    replaced = [b for b in replaced_raw if id(b) in kept_ids]
+    aged_out_all = [b for b in hoard_raw if id(b) in kept_ids]
+    short_gate = consent_gate_short(doctrine, omitted, renderer_id)
+
+    # --- applies_here scoping for headline backpack views ---------------
+    here = lambda b: applies_here(b, renderer_id)
+    pinned_bp = sorted(
+        [b for b in backpack if b.get("freshness_class") == "pinned" and here(b)],
+        key=by_priority,
+    )
+    current_bp = sorted(
+        [b for b in backpack if b.get("freshness_class") == "current" and here(b)],
+        key=by_priority,
+    )
+    recent_bp = sorted(
+        [b for b in backpack if b.get("freshness_class") == "recent" and here(b)],
+        key=by_priority,
+    )
+    timeline_bp = sorted(
+        [b for b in backpack if b.get("memory_class") == "timeline" and here(b)],
+        key=by_priority,
+    )
+
+    # --- Derived slices --------------------------------------------------
+    verify_after_days = (freshness or {}).get("rules", {}).get("verify_after_days", 7)
+    verify_items = [
+        b for b in (current_bp + recent_bp)
+        if needs_verify(b, now, verify_after_days)
+    ]
+    near_today = [b for b in current_bp if b not in verify_items]
+    this_week = [b for b in recent_bp if b not in verify_items]
+
+    today_str = now.strftime("%Y-%m-%d")
+    today_lifestate = next(
+        (
+            b for b in timeline_bp
+            if str(b.get("dated") or "")[:10] == today_str
+            and "life-state" in (b.get("tags") or [])
+        ),
+        None,
+    )
+
+    # --- Aged-out window -------------------------------------------------
+    cutoff = now - timedelta(hours=aged_out_window_hours)
+    aged_out = []
+    for b in aged_out_all:
+        ts = parse_iso(b.get("aged_out_at"))
+        # Items missing aged_out_at still surface (operator hasn't migrated
+        # yet); this matches how the lint will warn but not block.
+        if ts is None or ts >= cutoff:
+            aged_out.append(b)
+
+    # --- Voice + routing -------------------------------------------------
+    if voice_skin_override:
+        voice = select_voice_rule(doctrine, renderer_id, skin_override=voice_skin_override)
+        routing = None
+    else:
+        routing = select_routing_rule(doctrine, when=energy) if energy else None
+        if routing and (routing.get("routing") or {}).get("narrator"):
+            voice = select_voice_rule(
+                doctrine, renderer_id,
+                skin_override=routing["routing"]["narrator"],
+            )
+        else:
+            voice = select_voice_rule(doctrine, renderer_id)
+
+    return FactBundle(
+        now=now,
+        renderer_id=renderer_id,
+        operator_root=operator_root,
+        doctrine=doctrine,
+        backpack=backpack,
+        pinned_bp=pinned_bp,
+        current_bp=current_bp,
+        recent_bp=recent_bp,
+        timeline_bp=timeline_bp,
+        near_today=near_today,
+        verify_items=verify_items,
+        this_week=this_week,
+        today_lifestate=today_lifestate,
+        replaced=replaced,
+        aged_out=aged_out,
+        voice=voice,
+        routing=routing,
+        omitted_for_consent=omitted,
+        gate_messages=gate_messages,
+        gate_messages_short=short_gate,
+        freshness_policy=freshness,
+        backpack_total=len(backpack),
+        replaced_total=len(replaced),
+        aged_out_total=len(aged_out),
+    )

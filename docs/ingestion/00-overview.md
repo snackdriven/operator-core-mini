@@ -73,7 +73,7 @@ These are non-negotiable. If a pathway can't honor them, it doesn't ship.
   Doctrine, it MUST emit a `doctrine-proposed` event rather than writing
   directly; the user approves the change.
 - **Consent gate before life-state surfaces.** Any item with
-  `scope: life` or `requires_consent: true` is written to Hoard normally but
+  `area: life` or `requires_consent: true` is written to Hoard normally but
   MUST NOT be promoted to Backpack or included in renderer indexes without an
   explicit consent token for the surface. Details in `03-life-state.md`.
 - **Idempotent writes.** Re-running an adapter over the same source MUST NOT

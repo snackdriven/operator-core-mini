@@ -9,7 +9,7 @@
     "summary": "Q2 sync; NHHA RCM phase 2 → June.",
     "freshness_class": "current",
     "memory_class": "expiring-tactical",
-    "scope": "work",
+    "area": "work",
     "source": { "kind": "scratch-pad", "ref": "dailies/2026-04-29.md" },
     "dated": "2026-04-29",
     "tags": ["q2", "roadmap", "nhha"],
@@ -22,7 +22,7 @@
     "value": "2026-04-29 — Active board reflects post-launch fast-follows only. Phase 2 backlog parked. RCM regression suite green.",
     "freshness_class": "current",
     "memory_class": "replaceable-truth",
-    "scope": "work",
+    "area": "work",
     "dated": "2026-04-29",
     "tags": ["nhha", "rcm"],
     "replaces": "nhha-rcm-active-board-4-2"
@@ -32,7 +32,7 @@
     "value": "2026-04-22 — TTOAD-367 audit cycle complete. Auth scope mismatch confirmed and patched. Awaiting deploy window.",
     "freshness_class": "recent",
     "memory_class": "expiring-tactical",
-    "scope": "work",
+    "area": "work",
     "dated": "2026-04-22",
     "tags": ["ttoad-367", "audit"],
     "renderer_hints": { "surfaces": ["dashboard"], "priority": 50 }
@@ -42,7 +42,7 @@
     "value": "2026-04-09 — Bug referral routes: NHHA bugs → Jamie, RCM bugs → Ishan, infra → reorg-on-call rotation.",
     "freshness_class": "recent",
     "memory_class": "expiring-tactical",
-    "scope": "work",
+    "area": "work",
     "dated": "2026-04-09",
     "tags": ["referral", "process"],
     "renderer_hints": { "surfaces": ["dashboard", "session-primer"], "priority": 40, "decay": "fade" }
@@ -53,7 +53,7 @@
     "summary": "April: RCM launch + one fast-follow + Q2 lock.",
     "freshness_class": "contextual",
     "memory_class": "timeline",
-    "scope": "work",
+    "area": "work",
     "dated": "2026-04-29",
     "tags": ["timeline", "april-2026"],
     "renderer_hints": { "surfaces": ["session-primer"], "priority": 30 }
@@ -63,7 +63,7 @@
     "value": "Jamie — eng lead, NHHA. Ishan — eng lead, RCM (he/him). Reorg-on-call — rotating weekly. QA peers: see qa-team-roster doctrine entry for full list.",
     "freshness_class": "evergreen",
     "memory_class": "evergreen-reference",
-    "scope": "work",
+    "area": "work",
     "dated": "2026-04-29",
     "tags": ["team", "reference"],
     "doctrine_ref": "team-roster"
@@ -73,7 +73,7 @@
     "value": "Reproduce locally, capture seed data, check Sentry for prior occurrences, diff against last known good build, file findings in TTOAD with reproduction steps before commenting on the PR.",
     "freshness_class": "pinned",
     "memory_class": "pinned-doctrine",
-    "scope": "work",
+    "area": "work",
     "dated": "2026-04-29",
     "doctrine_ref": "qa-bug-investigation-protocol",
     "renderer_hints": { "surfaces": ["session-primer", "dashboard"], "priority": 95, "decay": "never" }
@@ -83,7 +83,7 @@
     "value": "Plain language. Dated entries. No exclamation points. Short paragraphs. Lists over prose when items are parallel.",
     "freshness_class": "evergreen",
     "memory_class": "evergreen-reference",
-    "scope": "identity",
+    "area": "identity",
     "dated": "2026-04-29",
     "doctrine_ref": "writing-preferences"
   },

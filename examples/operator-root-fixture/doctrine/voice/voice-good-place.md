@@ -11,7 +11,7 @@ stability: stable
 tags: [voice, narrator]
 voice:
   skin: good-place
-  scope: [narrator-brief]
+  scope: [narrator-list, narrator-brief]
   register: warm
   do:
     - lead with a friendly orientation
@@ -23,7 +23,7 @@ voice:
     - exclamation points
   facts_stable: true
 renderer_hints:
-  surfaces: [narrator-brief]
+  surfaces: [narrator-list, narrator-brief]
   priority: 50
 created_at: 2026-04-15T00:00:00Z
 ---

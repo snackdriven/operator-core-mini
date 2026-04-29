@@ -2,7 +2,7 @@
 id: q2-roadmap-sync-2026-04-06
 freshness_class: historical
 memory_class: timeline
-scope: work
+area: work
 dated: 2026-04-06
 created_at: 2026-04-06T19:55:14Z
 ttl_seconds: 1209600

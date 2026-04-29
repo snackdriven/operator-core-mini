@@ -1,0 +1,200 @@
+// information-flow.dot
+// Information flow across the Operator Core substrate.
+// Render: dot -Tpng information-flow.dot -o information-flow.png
+//         dot -Tsvg information-flow.dot -o information-flow.svg
+digraph operator_core_flow {
+  graph [
+    rankdir=LR,
+    fontname="Helvetica",
+    fontsize=11,
+    nodesep=0.35,
+    ranksep=0.6,
+    splines=spline,
+    bgcolor="white",
+    label="Operator Core — information flow (post follow-ups plan)\n\nLegend: blue = ingestion, gray = substrate stores, green = shared loaders/selectors, orange = renderers, purple = surfaces.",
+    labelloc="t",
+    labeljust="l",
+  ];
+  node  [fontname="Helvetica", fontsize=10, shape=box, style="rounded,filled", color="#888888", penwidth=1];
+  edge  [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  // -----------------------------------------------------------------
+  // Pathways (ingestion side)
+  // -----------------------------------------------------------------
+  subgraph cluster_pathways {
+    label="Pathways (write side)";
+    style=dashed; color="#77ddaa";
+    node [fillcolor="#dfeefb", color="#3a78b8"];
+    p_transcripts [label="transcripts\n(consent gate consults\ndoctrine.policy.consent)"];
+    p_vault       [label="narrator-vault\n(opt-out per file;\npromote-to-doctrine event)"];
+    p_manual      [label="manual edits\n(operator authoring\nbackpack/* and doctrine/*)"];
+  }
+
+  // -----------------------------------------------------------------
+  // Substrate stores (the file-system-as-database)
+  // -----------------------------------------------------------------
+  subgraph cluster_substrate {
+    label="Substrate (file-system-as-database)";
+    style=filled; color="#f5f5f5";
+    node [fillcolor="#ffffff", color="#666666", shape=folder];
+
+    doctrine [label=<<b>doctrine/</b><br/>identity, default, workflow,<br/>policy, voice, voice-rule,<br/>routing, routing-rule,<br/>vocabulary, evergreen-reference>];
+
+    bp_pinned   [label=<<b>backpack/pinned/</b><br/>reference shelf>];
+    bp_current  [label=<<b>backpack/current/</b><br/>active carry-state>];
+    bp_recent   [label=<<b>backpack/recent/</b><br/>cooling, verify on use>];
+    bp_replaced [label=<<b>backpack/_replaced/</b><br/>superseded items<br/>(NOT &quot;aged out&quot;)>];
+    bp_evergreen [label=<<b>backpack/evergreen/</b><br/>long-lived ref>];
+
+    hoard [label=<<b>hoard/</b><br/>aged-out / demoted<br/>(currently unread by<br/>any renderer)>, fillcolor="#fff4d6"];
+
+    policy_fr [label=<<b>policy/freshness.json</b><br/>verify_after_days,<br/>bands, etc.>];
+
+    indexes [label=<<b>(future) indexes/</b><br/>pre-built lookups so<br/>renderers don't walk<br/>the whole tree>, fillcolor="#f0e0ff", style="rounded,filled,dashed"];
+  }
+
+  // -----------------------------------------------------------------
+  // Shared loaders + selectors (renderers/_common.py)
+  // -----------------------------------------------------------------
+  subgraph cluster_common {
+    label="renderers/_common.py — shared loaders + selectors";
+    style=filled; color="#eaf6e7";
+    node [fillcolor="#cfe9c8", color="#3b7a30"];
+
+    l_read_doctrine    [label="read_doctrine()"];
+    l_read_backpack    [label="read_backpack()\n(skips _replaced)"];
+    l_read_replaced    [label="read_replaced()\n(daily_brief-only today —\nshould move into _common)"];
+    l_read_hoard       [label="(NEW) read_hoard()\nfor real aged-out feed"];
+    l_read_freshness   [label="read_freshness_policy()"];
+
+    s_consent          [label="consent_filter()\n+ consent_gate_short()\n(returns (kept, omits, banners))"];
+    s_applies_here     [label="applies_here()\nrenderer_hints.surfaces\n+ legacy applies_to"];
+    s_priority         [label="by_priority()"];
+    s_needs_verify     [label="needs_verify()\nuses freshness policy"];
+    s_voice            [label="select_voice_rule()\n(ADR 0005)"];
+    s_routing          [label="select_routing_rule()"];
+
+    f_bundle [label=<(NEW) <b>build_fact_bundle()</b><br/>one shared bundle:<br/>doctrine, pinned/current/recent,<br/>verify_items, near_today,<br/>aged_out (Hoard), this_week,<br/>gate_messages, voice, routing>, fillcolor="#a3d09a", color="#1f5b18"];
+  }
+
+  // -----------------------------------------------------------------
+  // Renderers
+  // -----------------------------------------------------------------
+  subgraph cluster_renderers {
+    label="Renderers (pure projections; ADR 0003)";
+    style=filled; color="#fbecdc";
+    node [fillcolor="#f7caa1", color="#a05a1c"];
+
+    r_session  [label="session_primer\n(adds Routing hints,\nOpen threads — fix #6)"];
+    r_daily    [label="daily_brief\n(switch _replaced → Hoard\nfor 'aged out' — fix #3)"];
+    r_status   [label="statusline"];
+    r_narrator_list [label=<narrator_<b>list</b><br/>(structured;<br/>renamed from narrator_brief —<br/>fix #1a)>];
+    r_narrator_prose [label=<narrator_<b>brief</b> (prompt-renderer)<br/>emits LLM prompt with fact<br/>bundle + voice rule —<br/>fix #1b (deferred)>, style="rounded,filled,dashed"];
+  }
+
+  // -----------------------------------------------------------------
+  // Surfaces
+  // -----------------------------------------------------------------
+  subgraph cluster_surfaces {
+    label="Surfaces (output)";
+    style=filled; color="#efe4f7";
+    node [fillcolor="#d8c2ee", color="#5e3a8a"];
+    out_session  [label=".session-primer.md"];
+    out_daily    [label=".daily-brief.md"];
+    out_status   [label=".statusline.txt"];
+    out_narrator_list [label=".narrator-list.md"];
+    out_narrator_prose [label=".narrator-brief.md\n(LLM-produced)", style="rounded,filled,dashed"];
+  }
+
+  // -----------------------------------------------------------------
+  // Tooling / governance
+  // -----------------------------------------------------------------
+  subgraph cluster_tools {
+    label="Tooling";
+    style=dotted; color="#666666";
+    node [fillcolor="#fafafa", color="#888888"];
+    t_validate [label="tools/validate.py\n+ tools/lint.py\n+ tools/test_renderers.py\n(golden cases)"];
+    t_trace    [label="examples/ingestion-trace/\n14 event kinds\n(promote-to-doctrine,\nvault-version-imported)"];
+  }
+
+  // -----------------------------------------------------------------
+  // Edges — pathways write into substrate
+  // -----------------------------------------------------------------
+  p_transcripts -> doctrine    [label="emits\nevents", style=dashed];
+  p_transcripts -> bp_current  [label="appends",   style=dashed];
+  p_transcripts -> hoard       [label="cooling\noverflow", style=dashed];
+  p_vault       -> doctrine    [label="promote", style=dashed];
+  p_vault       -> bp_pinned   [label="pin",     style=dashed];
+  p_manual      -> doctrine;
+  p_manual      -> bp_pinned;
+  p_manual      -> bp_current;
+  p_manual      -> bp_recent;
+  p_manual      -> policy_fr;
+
+  // promotion / demotion
+  bp_current -> bp_recent   [label="cool",        color="#888888"];
+  bp_recent  -> bp_replaced [label="superseded\n(replaces:)", color="#888888"];
+  bp_recent  -> hoard       [label="TTL expires\n(real aged-out)", color="#a05a1c", penwidth=2];
+  bp_pinned  -> doctrine    [label="promote\n(ADR 0002)", color="#888888"];
+
+  // -----------------------------------------------------------------
+  // Edges — substrate -> loaders
+  // -----------------------------------------------------------------
+  doctrine    -> l_read_doctrine;
+  bp_pinned   -> l_read_backpack;
+  bp_current  -> l_read_backpack;
+  bp_recent   -> l_read_backpack;
+  bp_evergreen-> l_read_backpack;
+  bp_replaced -> l_read_replaced;
+  hoard       -> l_read_hoard      [color="#a05a1c", penwidth=2];
+  policy_fr   -> l_read_freshness;
+  doctrine    -> indexes           [style=dashed, color="#9b6cc0"];
+  bp_current  -> indexes           [style=dashed, color="#9b6cc0"];
+  indexes     -> l_read_doctrine   [style=dashed, color="#9b6cc0", label="(future)"];
+  indexes     -> l_read_backpack   [style=dashed, color="#9b6cc0"];
+
+  // -----------------------------------------------------------------
+  // Edges — loaders + selectors -> fact bundle
+  // -----------------------------------------------------------------
+  l_read_doctrine  -> f_bundle;
+  l_read_backpack  -> f_bundle;
+  l_read_replaced  -> f_bundle;
+  l_read_hoard     -> f_bundle [color="#a05a1c", penwidth=2];
+  l_read_freshness -> f_bundle;
+  s_consent        -> f_bundle;
+  s_applies_here   -> f_bundle;
+  s_priority       -> f_bundle;
+  s_needs_verify   -> f_bundle;
+  s_voice          -> f_bundle;
+  s_routing        -> f_bundle;
+
+  // -----------------------------------------------------------------
+  // Edges — bundle -> renderers
+  // -----------------------------------------------------------------
+  f_bundle -> r_session;
+  f_bundle -> r_daily;
+  f_bundle -> r_status;
+  f_bundle -> r_narrator_list;
+  f_bundle -> r_narrator_prose [style=dashed];
+
+  // -----------------------------------------------------------------
+  // Edges — renderers -> surfaces
+  // -----------------------------------------------------------------
+  r_session         -> out_session;
+  r_daily           -> out_daily;
+  r_status          -> out_status;
+  r_narrator_list   -> out_narrator_list;
+  r_narrator_prose  -> out_narrator_prose [style=dashed, label="prompt → LLM"];
+
+  // -----------------------------------------------------------------
+  // Tooling sees everything
+  // -----------------------------------------------------------------
+  t_validate -> doctrine     [style=dotted, arrowhead=none, color="#999999"];
+  t_validate -> bp_current   [style=dotted, arrowhead=none, color="#999999"];
+  t_validate -> r_session    [style=dotted, arrowhead=none, color="#999999"];
+  t_validate -> r_daily      [style=dotted, arrowhead=none, color="#999999"];
+  t_validate -> r_status     [style=dotted, arrowhead=none, color="#999999"];
+  t_validate -> r_narrator_list [style=dotted, arrowhead=none, color="#999999"];
+  t_trace    -> doctrine     [style=dotted, arrowhead=none, color="#999999"];
+  t_trace    -> bp_current   [style=dotted, arrowhead=none, color="#999999"];
+}

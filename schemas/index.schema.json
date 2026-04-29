@@ -53,8 +53,9 @@
           "type": "object",
           "additionalProperties": { "type": "integer", "minimum": 0 }
         },
-        "by_scope": {
+        "by_area": {
           "type": "object",
+          "description": "Per follow-up #7 (2026-04-29): renamed from by_scope.",
           "additionalProperties": { "type": "integer", "minimum": 0 }
         },
         "stale_count": { "type": "integer", "minimum": 0 }

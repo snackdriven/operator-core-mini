@@ -1,5 +1,12 @@
 # Narrator Brief — 2026-04-29 (Mass Effect skin)
 
+> **Note (2026-04-29 clarification on ADR 0005):** this file is
+> *expected LLM output* for the prompt-driven `narrator-brief` surface
+> with `--skin mass-effect`. Same fact bundle, different voice rule.
+> The deterministic template renderer is now `narrator-list`; its
+> mass-effect golden lives at
+> `examples/operator-root-fixture/expected-narrator-list.mass-effect.md`.
+
 > Narrator: **Mass Effect** (terse, mission-brief register). Selected to
 > demonstrate facts-stable / framing-adapts: the underlying state is
 > identical to `narrator-brief.sample.md`; only the voice rule changes.

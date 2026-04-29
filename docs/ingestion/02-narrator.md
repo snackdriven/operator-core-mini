@@ -126,7 +126,7 @@ state + passive cueing logic. The adapter SPLITS it:
   `doctrine/hud/*.md` with `kind: policy`.
 - **Current active theme cast** (today's selected narrator + theme) →
   one Backpack item: id `narrator-active-state`,
-  `memory_class: replaceable-truth`, `scope: assistant`,
+  `memory_class: replaceable-truth`, `area: assistant`,
   `ttl_seconds: 86400` (1 day — HUD state expires daily and must be
   re-asserted). `replaces` chain the predecessor each day.
 - **Heartbeat payloads** → Hoard `log` records. Never Backpack.

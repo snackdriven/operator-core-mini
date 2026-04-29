@@ -9,7 +9,7 @@ body: |
 pinned: true
 stability: stable
 tags: [identity]
-applies_to: [session-primer, narrator-brief, daily-brief]
+applies_to: [session-primer, narrator-list, narrator-brief, daily-brief]
 renderer_hints:
   surfaces: [session-primer, narrator]
   priority: 100

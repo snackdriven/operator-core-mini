@@ -179,6 +179,17 @@ def run(repo_root: Path) -> bool:
                 print(f"[FAIL] {rel}: {exc}")
                 continue
             validate(data, "schemas/doctrine-entry.schema.json", rel)
+        # Hoard entries (per follow-up #3, 2026-04-29) — same backpack-item
+        # schema; the optional `aged_out_at` field signals real aged-out.
+        for hf in sorted(glob.glob(str(fixture_root / "hoard/**/*.md"), recursive=True)):
+            rel = os.path.relpath(hf, repo_root)
+            try:
+                data = load_frontmatter(Path(hf))
+            except Exception as exc:
+                ok = False
+                print(f"[FAIL] {rel}: {exc}")
+                continue
+            validate(data, "schemas/backpack-item.schema.json", rel)
         fp = fixture_root / "policy/freshness.json"
         if fp.is_file():
             rel = os.path.relpath(fp, repo_root)

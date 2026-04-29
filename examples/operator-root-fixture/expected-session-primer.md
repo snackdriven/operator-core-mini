@@ -1,7 +1,7 @@
-# Session primer — 2026-04-29 14:00 UTC
+# Session Brief — 2026-04-29 14:00 UTC
 
 > Generated from Backpack + Doctrine. Do not edit; edit the source files instead.
-> Renderer: `session-primer`. Items: 6 backpack, 9 doctrine.
+> Renderer: `session-primer`. Items: 7 backpack, 9 doctrine.
 
 ## Identity (Doctrine: pinned)
 
@@ -30,7 +30,18 @@ low-demand surfaces.
 
 ## Verify before acting
 
+- `misnamed-pr-detection-followup` (~7d old). Re-confirm before acting.
 - `bug-referral-setup-2026-04-09` (~20d old). Re-confirm before acting.
+
+## Routing hints
+
+- Narrator skin: `good-place` (warm).
+- Energy routing: not triggered today. Configured: `narrator-low-energy-routing` (when=`low-energy`).
+- Surfaces consenting to life-state: none active.
+
+## Open threads worth knowing
+
+- **misnamed-pr-detection-followup** — 2026-04-22 — Misnamed PR detection follow-up: still unowned per Q2 sync.
 
 ---
 *Source: `/home/user/workspace/operator-core-schemas/examples/operator-root-fixture`. Rendered 2026-04-29T14:00:00+00:00 by `renderers/session_primer.py`. Pure projection over Backpack + Doctrine.*

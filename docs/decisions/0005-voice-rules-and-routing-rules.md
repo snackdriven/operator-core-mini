@@ -1,6 +1,6 @@
 # ADR 0005 — Voice rules and routing rules are Doctrine, selected by contract
 
-- **Status:** Accepted
+- **Status:** Accepted (clarified 2026-04-29 — see end-of-doc clarification block)
 - **Date:** 2026-04-29
 - **Deciders:** operator-core-mini owner
 - **Supersedes:** —
@@ -175,3 +175,54 @@ Doctrine workaround.
 - A future Phase 4 follow-up: a renderer MAY assert that its fact
   bundle equals daily-brief's bundle for the same `now`, as a CI-time
   facts-stable check. Today this is enforced by inspection.
+
+## Clarification — 2026-04-29 (narrator surfaces split)
+
+When ADR 0005 was written, the narrator surface existed as a single
+renderer (`renderers/narrator_brief.py`) that emitted a structured
+template. The Phase 2 hand-written sample
+([`examples/renders/narrator-brief.sample.md`](../../examples/renders/narrator-brief.sample.md))
+is prose, not a template, which made the contract ambiguous: was
+narrator-brief the structured surface (what the renderer produced) or
+the prose surface (what the sample showed)?
+
+The 2026-04-29 follow-up ([PLAN-followups-2026-04-29.md item #1](../PLAN-followups-2026-04-29.md))
+resolved this by splitting the narrator into **two surfaces** that
+share a single voice-rule selection contract:
+
+- **`narrator-list`** — the template-driven surface. Implemented in
+  [`renderers/narrator_list.py`](../../renderers/narrator_list.py)
+  (this is the renamed original `narrator_brief.py`). Output is
+  deterministic structured markdown with skin-specific opener /
+  section-lead / closer lines. Use this surface when a downstream
+  consumer needs facts framed by voice but cannot run an LLM (audit
+  contexts, headless pipelines, smoke tests).
+- **`narrator-brief`** — the prompt-driven surface. Implemented in
+  [`renderers/narrator_brief.py`](../../renderers/narrator_brief.py)
+  (rewritten 2026-04-29). The renderer is still pure: it emits a
+  deterministic markdown *prompt artefact* containing a YAML
+  frontmatter system block (active voice, do/avoid, `prompt_version`),
+  a Facts block (FactBundle rendered as a stable id‑keyed list), and
+  a load-bearing Instruction block. An LLM step — outside the renderer
+  boundary — turns that prompt into prose. The Phase 2 sample is a
+  realistic example of *expected LLM output*, not renderer output.
+
+**Voice-rule selection is identical for both surfaces.** A voice-rule
+with `voice.scope: [narrator-list, narrator-brief]` (or empty scope)
+applies to both; the selection order in this ADR is unchanged. Routing
+rules likewise pick a skin once and that skin is consumed by whichever
+narrator surface is being rendered. This preserves the
+"facts-stable / framing-adapts" property of ADR 0003 and the
+"one stable thing called the narrator" property of this ADR.
+
+Golden tests cover both surfaces:
+[`expected-narrator-list.md`](../../examples/operator-root-fixture/expected-narrator-list.md),
+[`expected-narrator-list.mass-effect.md`](../../examples/operator-root-fixture/expected-narrator-list.mass-effect.md),
+and the new [`expected-narrator-brief.prompt.md`](../../examples/operator-root-fixture/expected-narrator-brief.prompt.md).
+The prompt golden is stable because `build_fact_bundle` is
+deterministic for fixed `(operator_root, now)`; the LLM output is
+deliberately *not* in CI.
+
+The Instruction block in the prompt is treated as versioned
+(`prompt_version: 1` in the system block) so iteration on prose quality
+doesn't silently break the prompt contract.

@@ -19,7 +19,7 @@
     "title": "TBD ticket from manifest",
     "value": null,
     "memory_class": "expiring-tactical",
-    "scope": "work",
+    "area": "work",
     "_meta": {
       "created_at": "2026-04-29T15:45:30Z",
       "source_path": "dashboard-manifest.json#days[0].tickets.TTOAD-XYZ"

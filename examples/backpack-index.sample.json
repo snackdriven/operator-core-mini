@@ -14,7 +14,7 @@
       "value": "2026-04-29 — Q2 roadmap sync: scope locked for May.",
       "freshness_class": "current",
       "memory_class": "expiring-tactical",
-      "scope": "work",
+      "area": "work",
       "dated": "2026-04-29",
       "created_at": "2026-04-29T15:30:00Z",
       "ttl_seconds": 1209600
@@ -24,13 +24,13 @@
       "value": "Plain language. Dated entries. No exclamation points.",
       "freshness_class": "evergreen",
       "memory_class": "evergreen-reference",
-      "scope": "identity"
+      "area": "identity"
     }
   },
   "stats": {
     "count": 2,
     "by_freshness": { "current": 1, "evergreen": 1 },
-    "by_scope": { "work": 1, "identity": 1 },
+    "by_area": { "work": 1, "identity": 1 },
     "stale_count": 0
   }
 }

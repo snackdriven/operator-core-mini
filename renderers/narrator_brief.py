@@ -1,30 +1,39 @@
 #!/usr/bin/env python3
 """
-narrator_brief.py — render the narrator brief surface.
+narrator_brief.py — render the narrator-brief *prompt* surface.
 
-The narrator brief is the same facts as the daily brief, framed by an
-active voice-rule from Doctrine. It's the surface that proves ADR 0003's
-"facts stable, framing adapts" property: the rendered facts MUST not
-diverge from what other renderers would surface for the same state; only
-the voice envelope changes.
+narrator-brief is the LLM-mediated companion to narrator-list. The
+renderer itself is still a pure projection over the FactBundle: it does
+not call an LLM and produces deterministic output. What it produces is
+not narrator prose; it is a *prompt artefact* — a markdown document that
+an LLM consumes to render the prose surface offline. Per ADR 0003 the
+fact set is identical to what narrator-list, daily-brief, and statusline
+would surface for the same state; only the framing (and the medium —
+prompt instead of finished list) varies.
 
-This is a deliberately *non-LLM* renderer. It does not rewrite prose.
-Instead it:
+Per the 2026-04-29 clarification on ADR 0005:
 
-  1. Picks an active voice-rule (kind=voice-rule). Selection order:
-     a) ``--skin`` overrides everything,
-     b) ``--energy`` triggers a routing-rule lookup that may pick a skin,
-     c) otherwise the highest-priority voice-rule whose ``voice.scope``
-        contains this renderer wins.
-  2. Renders a fact bundle (today's shape, near-today items, verify-before-
-     acting nudges, the overnight diff).
-  3. Wraps the bundle in a header block that declares the active voice
-     and a skin-specific opener / closer template. The do/avoid rules are
-     reported in the header so a downstream LLM (or human) can apply them
-     without re-querying Doctrine.
+  * narrator-list  — template-driven, deterministic markdown list.
+  * narrator-brief — prompt-driven; output is a prompt for an LLM.
+  * Voice-rule selection is identical for both surfaces.
 
-Per ADR 0004 the consent gate runs first; nothing scoped to a forbidden
-posture for this renderer reaches the bundle, named or otherwise.
+The prompt is laid out in four blocks so a tool can split it cleanly:
+
+  1. ``# Narrator brief prompt — <date>`` — human-readable header.
+  2. ``---`` YAML frontmatter system block (``role: system``) declaring
+     the active voice rule, do/avoid lists, ``prompt_version``, and a
+     "facts stable, framing adapts" reminder. This is the operator-side
+     prompt the LLM sees.
+  3. A ``## Facts`` block — markdown rendering of the FactBundle with
+     stable item ids, used as ground truth.
+  4. A ``## Instruction`` block — the load-bearing render instruction.
+     Treated as versioned (see ``prompt_version`` in the system block);
+     iterate based on actual LLM output.
+
+Per ADR 0004 the consent gate runs first; the prompt only ever names
+items that survived the gate. Suppressed items surface as a banner in
+the system block (count + gate message) so the LLM knows aggregate
+context exists without naming it.
 
 Usage:
     python renderers/narrator_brief.py <operator-root> \
@@ -42,69 +51,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _common import (  # noqa: E402
     age_days,
-    applies_here,
-    by_priority,
-    consent_filter,
-    needs_verify,
+    build_fact_bundle,
     parse_iso,
-    read_backpack,
-    read_doctrine,
-    read_freshness_policy,
-    select_routing_rule,
-    select_voice_rule,
 )
 
 
 RENDERER_ID = "narrator-brief"
+PROMPT_VERSION = 1
 
 
 # ---------------------------------------------------------------------------
-# Skin templates
-# ---------------------------------------------------------------------------
-
-# Each skin provides its own opener/closer/section-leads. Anything else the
-# renderer needs to do per-skin lives here, not in the body of `render()`,
-# so adding a skin doesn't require editing the renderer logic.
-SKIN_TEMPLATES: dict[str, dict[str, str]] = {
-    "good-place": {
-        "opener": "Good morning, Kayla. It's {weekday}, the {ordinal} of {month}.",
-        "near": "Here's what's already in your bag:",
-        "verify": "Two notes from the verify-before-acting drawer:",
-        "aged": "What moved on overnight (the Hoard takes good care of it):",
-        "closer": "That's the whole day. Everything else is yours to shape.",
-        "byline": "— *the narrator*",
-    },
-    "mass-effect": {
-        "opener": "Situation, {date} {time}.",
-        "near": "Active items:",
-        "verify": "Verify before action:",
-        "aged": "Demoted overnight:",
-        "closer": "Decision point: pick one and move.",
-        "byline": "— mission log, narrator channel",
-    },
-    "neutral": {
-        "opener": "Brief for {date}.",
-        "near": "In the bag:",
-        "verify": "Verify before acting:",
-        "aged": "Aged out overnight:",
-        "closer": "End of brief.",
-        "byline": "— narrator",
-    },
-}
-
-DEFAULT_SKIN = "neutral"
-
-
-def template_for(voice_rule: dict | None) -> dict[str, str]:
-    if voice_rule:
-        skin = (voice_rule.get("voice") or {}).get("skin") or DEFAULT_SKIN
-    else:
-        skin = DEFAULT_SKIN
-    return SKIN_TEMPLATES.get(skin, SKIN_TEMPLATES[DEFAULT_SKIN])
-
-
-# ---------------------------------------------------------------------------
-# Fact bundle
+# Helpers
 # ---------------------------------------------------------------------------
 
 def first_line(s: str | None) -> str:
@@ -113,44 +70,20 @@ def first_line(s: str | None) -> str:
     return s.strip().splitlines()[0] if s.strip() else ""
 
 
-def build_bundle(operator_root: Path, now: datetime) -> dict:
-    doctrine = read_doctrine(operator_root)
-    backpack = read_backpack(operator_root)
-    policy = read_freshness_policy(operator_root)
+def _yaml_quote(s: str) -> str:
+    """Single-quote a string for a YAML scalar; double single-quotes inside."""
+    return "'" + s.replace("'", "''") + "'"
 
-    backpack, _omitted, gate_messages = consent_filter(backpack, doctrine, RENDERER_ID)
 
-    here = lambda b: applies_here(b, RENDERER_ID)
-    current = sorted([b for b in backpack if b.get("freshness_class") == "current" and here(b)], key=by_priority)
-    recent = sorted([b for b in backpack if b.get("freshness_class") == "recent" and here(b)], key=by_priority)
-
-    verify_after_days = (policy or {}).get("rules", {}).get("verify_after_days", 7)
-    verify_items = [b for b in (current + recent) if needs_verify(b, now, verify_after_days)]
-    near_today = [b for b in current if b not in verify_items]
-
-    return {
-        "doctrine": doctrine,
-        "near_today": near_today,
-        "verify_items": verify_items,
-        "gate_messages": gate_messages,
-    }
+def _yaml_list(items: list[str]) -> str:
+    if not items:
+        return "[]"
+    return "[" + ", ".join(_yaml_quote(i) for i in items) + "]"
 
 
 # ---------------------------------------------------------------------------
 # Renderer
 # ---------------------------------------------------------------------------
-
-def _fmt_date_tokens(now: datetime) -> dict[str, str]:
-    day = now.day
-    suffix = "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
-    return {
-        "weekday": now.strftime("%A"),
-        "month": now.strftime("%B"),
-        "ordinal": f"{day}{suffix}",
-        "date": now.strftime("%Y-%m-%d"),
-        "time": now.strftime("%H:%M %Z").strip(),
-    }
-
 
 def render(
     operator_root: Path,
@@ -159,87 +92,133 @@ def render(
     energy: str | None = None,
 ) -> str:
     now = now or datetime.now(timezone.utc)
-    bundle = build_bundle(operator_root, now)
-    doctrine = bundle["doctrine"]
+    bundle = build_fact_bundle(
+        operator_root, now, RENDERER_ID,
+        voice_skin_override=skin,
+        energy=energy,
+    )
 
-    # Voice selection.
+    voice = bundle.voice
     if skin:
-        voice = select_voice_rule(doctrine, RENDERER_ID, skin_override=skin)
         voice_source = "cli --skin"
+    elif bundle.routing:
+        voice_source = (
+            f"routing-rule `{bundle.routing.get('id', '?')}` (when={energy})"
+        )
     else:
-        routing = select_routing_rule(doctrine, when=energy) if energy else None
-        if routing and (routing.get("routing") or {}).get("narrator"):
-            voice = select_voice_rule(
-                doctrine,
-                RENDERER_ID,
-                skin_override=routing["routing"]["narrator"],
-            )
-            voice_source = f"routing-rule `{routing.get('id', '?')}` (when={energy})"
-        else:
-            voice = select_voice_rule(doctrine, RENDERER_ID)
-            voice_source = "default voice-rule (highest priority)"
-
-    tpl = template_for(voice)
-    fmts = _fmt_date_tokens(now)
+        voice_source = "default voice-rule (highest priority)"
 
     voice_obj = (voice or {}).get("voice") or {}
-    skin_id = voice_obj.get("skin", DEFAULT_SKIN)
+    skin_id = voice_obj.get("skin", "neutral")
     register = voice_obj.get("register", "neutral")
     do_rules = voice_obj.get("do") or []
     avoid_rules = voice_obj.get("avoid") or []
 
+    date_str = now.strftime("%Y-%m-%d")
+
     lines: list[str] = []
-    lines.append(f"# Narrator Brief — {fmts['date']}")
+    lines.append(f"# Narrator brief prompt — {date_str}")
+    lines.append("")
+    lines.append(
+        "> This document is a *prompt*, not narrator prose. An LLM"
+        " consumes the system block + facts and renders prose offline."
+        " The facts surface here is identical to what narrator-list,"
+        " daily-brief, and statusline would surface for the same state"
+        " (ADR 0003)."
+    )
     lines.append("")
 
-    # Voice header — declares the active rule so downstream tooling can
-    # see it without re-reading Doctrine.
-    lines.append(f"> Voice: **{skin_id}** ({register}). Selected via {voice_source}.")
-    lines.append(f"> Facts stable across renderers; only framing adapts (ADR 0003).")
-    if do_rules:
-        lines.append(f"> Do: {'; '.join(do_rules)}.")
-    if avoid_rules:
-        lines.append(f"> Avoid: {'; '.join(avoid_rules)}.")
-    lines.append("")
-
-    # Body — opener, near, verify, aged, closer.
+    # --- System block ---------------------------------------------------
+    lines.append("---")
+    lines.append("role: system")
+    lines.append(f"prompt_version: {PROMPT_VERSION}")
+    lines.append(f"renderer_id: {RENDERER_ID}")
+    lines.append(f"rendered_at: {now.isoformat()}")
+    lines.append("voice:")
+    lines.append(f"  skin: {skin_id}")
+    lines.append(f"  register: {register}")
+    lines.append(f"  selected_via: {_yaml_quote(voice_source)}")
+    lines.append(f"  do: {_yaml_list(do_rules)}")
+    lines.append(f"  avoid: {_yaml_list(avoid_rules)}")
+    lines.append(
+        "contract: 'Facts stable across renderers; only framing adapts."
+        " Do not invent items not in the Facts block. Cite each prose"
+        " claim by item id in a trailing comment.'"
+    )
+    if bundle.gate_messages:
+        lines.append("consent_banner:")
+        for msg in bundle.gate_messages:
+            lines.append(f"  - {_yaml_quote(msg)}")
     lines.append("---")
     lines.append("")
-    lines.append(tpl["opener"].format(**fmts))
+
+    # --- Facts block -----------------------------------------------------
+    lines.append("## Facts")
     lines.append("")
 
-    if bundle["near_today"]:
-        lines.append(tpl["near"])
+    if bundle.today_lifestate:
+        ls = bundle.today_lifestate
+        lines.append("### Today's life-state")
         lines.append("")
-        for b in bundle["near_today"]:
+        lines.append(f"- **{ls.get('id', '?')}** — {first_line(ls.get('value'))}")
+        lines.append("")
+
+    if bundle.near_today:
+        lines.append("### In the bag")
+        lines.append("")
+        for b in bundle.near_today:
             lines.append(f"- **{b['id']}** — {first_line(b.get('value'))}")
         lines.append("")
 
-    if bundle["verify_items"]:
-        lines.append(tpl["verify"])
+    if bundle.verify_items:
+        lines.append("### Verify before acting")
         lines.append("")
-        for b in bundle["verify_items"]:
+        for b in bundle.verify_items:
             age = age_days(b, now)
             age_note = f"~{age:.0f}d old" if age is not None else "no created_at"
-            lines.append(f"- **{b['id']}** ({age_note}). {first_line(b.get('value'))}")
+            lines.append(f"- **{b['id']}** ({age_note}) — {first_line(b.get('value'))}")
         lines.append("")
 
-    lines.append(tpl["closer"])
+    if bundle.this_week:
+        lines.append("### This week")
+        lines.append("")
+        for b in bundle.this_week:
+            lines.append(f"- **{b['id']}** — {first_line(b.get('value'))}")
+        lines.append("")
+
+    if bundle.aged_out:
+        lines.append("### Aged out overnight")
+        lines.append("")
+        for b in bundle.aged_out:
+            ts = (b.get("aged_out_at") or "").split("T")[0] or "?"
+            lines.append(f"- **{b['id']}** (aged out {ts}) — {first_line(b.get('value'))}")
+        lines.append("")
+
+    if not (bundle.today_lifestate or bundle.near_today or bundle.verify_items
+            or bundle.this_week or bundle.aged_out):
+        lines.append("- *(no facts surfaced for this renderer at this time)*")
+        lines.append("")
+
+    # --- Instruction block ----------------------------------------------
+    lines.append("## Instruction")
     lines.append("")
-    lines.append(tpl["byline"])
+    lines.append(
+        "Render the Facts block above as prose using the voice rule"
+        f" declared in the system block (skin: `{skin_id}`, register:"
+        f" `{register}`). Apply the do/avoid rules verbatim. Do not"
+        " invent items not in the Facts block. Cite each prose claim by"
+        " item id in a trailing HTML comment (e.g. `<!-- cite: q2-roadmap-sync -->`)."
+        " Keep the prose under ~250 words. End with a single-line closer"
+        " consistent with the active voice."
+    )
     lines.append("")
 
-    if bundle["gate_messages"]:
-        lines.append("---")
-        lines.append("")
-        for msg in bundle["gate_messages"]:
-            lines.append(f"*{msg}*")
-        lines.append("")
-
+    # --- Footer ----------------------------------------------------------
     lines.append("---")
     lines.append(
         f"*Source: `{operator_root}`. Rendered {now.isoformat()} by "
-        f"`renderers/narrator_brief.py`. Pure projection over Backpack + Doctrine.*"
+        f"`renderers/narrator_brief.py`. Deterministic prompt artefact;"
+        f" the LLM step is outside the renderer boundary.*"
     )
     return "\n".join(lines) + "\n"
 

@@ -105,8 +105,11 @@ layer, many renderers." Shared inputs documented in `_shared-state.md`.
 |---|---|---|
 | `renders/session-brief.sample.md` | Assistant bootstrap | Pinned doctrine + current carry-state + verify-before-acting + aged-out section. |
 | `renders/daily-brief.sample.md` | Morning resumption | Today / near-today / verify / aged-out / week / month bands. |
-| `renders/narrator-brief.sample.md` | Narrator (Good Place skin) | Same facts; warm low-demand tone; respects writing-preferences and life-state consent gate. |
-| `renders/narrator-brief.mass-effect.sample.md` | Narrator (Mass Effect skin) | Same facts as above, terse mission-brief register; proves facts-stable / framing-adapts via the `voice-rule` Doctrine entry. |
+| `renders/narrator-brief.sample.md` | Narrator-brief (Good Place skin) — *expected LLM output* | The prose an LLM produces from the prompt artefact emitted by `renderers/narrator_brief.py`. Same facts; warm low-demand tone; respects writing-preferences and life-state consent gate. |
+| `renders/narrator-brief.mass-effect.sample.md` | Narrator-brief (Mass Effect skin) — *expected LLM output* | Same facts as above, terse mission-brief register; proves facts-stable / framing-adapts via the `voice-rule` Doctrine entry. |
+| `operator-root-fixture/expected-narrator-list.md` | Narrator-list (template, Good Place skin) | Deterministic template render; what the structured `narrator-list` renderer produces with no skin override. |
+| `operator-root-fixture/expected-narrator-list.mass-effect.md` | Narrator-list (template, Mass Effect skin) | Deterministic template render with `--skin mass-effect`. |
+| `operator-root-fixture/expected-narrator-brief.prompt.md` | Narrator-brief prompt artefact | Deterministic prompt the renderer emits for an LLM to consume. The LLM step is outside the renderer boundary. |
 | `renders/statusline.sample.txt` | Single-line ambient cue | ~80 char budget; demonstrates RendererHints `priority` and `max_chars_in`. |
 
 ### Ingestion trace (`examples/ingestion-trace/`)

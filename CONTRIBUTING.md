@@ -92,6 +92,32 @@ it lands.
 - If the field changes how the record is written or read in a way that
   affects more than one consumer, write an ADR.
 
+#### `additionalProperties: false` migration template
+
+Most of our records pin `additionalProperties: false` so unknown keys
+fail validation. That's a feature — it stops drift — but it makes
+adding a new field a multi-step migration. Follow this canonical four
+step recipe so contributors don't get stuck:
+
+1. **Loosen.** In the same PR, change `additionalProperties: false` to
+   `true` (or comment the line out) on the affected schema. Existing
+   fixtures stay valid; the new field becomes legal to add.
+2. **Add the field.** Update the schema with the new optional property
+   and its description. Ship the schema change.
+3. **Migrate fixtures.** Run (or write) a migration step under
+   `tools/migrate.py` (or a one-off script like
+   `tools/rename_scope_to_area.py` for renames) that populates the new
+   field across `examples/**/*.md`, `examples/**/*.json`, and any
+   `*.jsonl` payloads. Migrations MUST be idempotent so they're safe
+   to run twice during review.
+4. **Re-tighten.** Restore `additionalProperties: false`. Run
+   `python tools/validate.py` and confirm both passes end in
+   `ALL PASSED`.
+
+If step 4 turns red, the migration in step 3 is incomplete; do not
+relax `additionalProperties` permanently to avoid the lint. Going
+through the full cycle is what keeps schemas honest.
+
 ### Adding a new enum member (e.g. a new Hoard kind, doctrine kind)
 
 - Update the schema enum.

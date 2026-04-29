@@ -1,4 +1,4 @@
-# Narrator Brief — 2026-04-29
+# Narrator List — 2026-04-29
 
 > Voice: **good-place** (warm). Selected via default voice-rule (highest priority).
 > Facts stable across renderers; only framing adapts (ADR 0003).
@@ -20,9 +20,13 @@ Two notes from the verify-before-acting drawer:
 
 - **bug-referral-setup-2026-04-09** (~20d old). 2026-04-09 — Bug-referral path established with Jamie's team. Re-confirm
 
+What moved on overnight (the Hoard takes good care of it):
+
+- **ttoad-221-discharge-filter-bug-2026-04-09** (aged out 2026-04-29).
+
 That's the whole day. Everything else is yours to shape.
 
 — *the narrator*
 
 ---
-*Source: `/home/user/workspace/operator-core-schemas/examples/operator-root-fixture`. Rendered 2026-04-29T14:00:00+00:00 by `renderers/narrator_brief.py`. Pure projection over Backpack + Doctrine.*
+*Source: `/home/user/workspace/operator-core-schemas/examples/operator-root-fixture`. Rendered 2026-04-29T14:00:00+00:00 by `renderers/narrator_list.py`. Pure projection over Backpack + Doctrine.*

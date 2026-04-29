@@ -105,7 +105,7 @@
         },
         "scope": {
           "type": "array",
-          "description": "Renderer/surface ids the voice rule applies to (e.g. 'narrator-brief'). Empty = applies anywhere narrator voice is requested.",
+          "description": "Renderer/surface ids the voice rule applies to (e.g. 'narrator-list', 'narrator-brief'). Empty = applies anywhere narrator voice is requested. Voice-rule selection is identical for both narrator surfaces (see ADR 0005 clarification 2026-04-29).",
           "items": { "type": "string" }
         },
         "register": {

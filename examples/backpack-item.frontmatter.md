@@ -2,7 +2,7 @@
 id: meetings-2026-04-29-q2-roadmap
 freshness_class: current
 memory_class: expiring-tactical
-scope: work
+area: work
 dated: 2026-04-29
 created_at: 2026-04-29T15:30:00Z
 ttl_seconds: 1209600

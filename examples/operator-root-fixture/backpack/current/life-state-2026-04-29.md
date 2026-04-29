@@ -2,13 +2,13 @@
 id: life-state-2026-04-29
 freshness_class: current
 memory_class: timeline
-scope: life
+area: life
 dated: 2026-04-29
 created_at: 2026-04-29T07:00:00Z
 ttl_seconds: 86400
 tags: [health, life-state]
 renderer_hints:
-  surfaces: [session-primer, narrator-brief]
+  surfaces: [session-primer, narrator-list, narrator-brief]
   never_surface_in: [daily-brief, statusline]
   priority: 40
   ambient_only: true

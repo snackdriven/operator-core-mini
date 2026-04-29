@@ -1,4 +1,4 @@
-# Narrator Brief — 2026-04-29
+# Narrator List — 2026-04-29
 
 > Voice: **mass-effect** (terse). Selected via cli --skin.
 > Facts stable across renderers; only framing adapts (ADR 0003).
@@ -20,9 +20,13 @@ Verify before action:
 
 - **bug-referral-setup-2026-04-09** (~20d old). 2026-04-09 — Bug-referral path established with Jamie's team. Re-confirm
 
+Demoted overnight:
+
+- **ttoad-221-discharge-filter-bug-2026-04-09** (aged out 2026-04-29).
+
 Decision point: pick one and move.
 
 — mission log, narrator channel
 
 ---
-*Source: `/home/user/workspace/operator-core-schemas/examples/operator-root-fixture`. Rendered 2026-04-29T14:00:00+00:00 by `renderers/narrator_brief.py`. Pure projection over Backpack + Doctrine.*
+*Source: `/home/user/workspace/operator-core-schemas/examples/operator-root-fixture`. Rendered 2026-04-29T14:00:00+00:00 by `renderers/narrator_list.py`. Pure projection over Backpack + Doctrine.*

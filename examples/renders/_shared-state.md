@@ -49,7 +49,16 @@ this; others MUST omit it.
 
 - `session-brief.sample.md` — assistant bootstrap context.
 - `daily-brief.sample.md` — morning resumption surface.
-- `narrator-brief.sample.md` — narrator-rendered version (Good Place skin).
-- `narrator-brief.mass-effect.sample.md` — same facts, Mass Effect skin
-  (proves facts-stable / framing-adapts: only the `voice-rule` differs).
+- `narrator-brief.sample.md` — *expected LLM output* for the
+  prompt-driven `narrator-brief` surface (Good Place skin). Per the
+  ADR 0005 clarification of 2026-04-29 the renderer itself emits a
+  prompt artefact; this sample is the prose an LLM would produce from
+  that prompt. Not a deterministic golden.
+- `narrator-brief.mass-effect.sample.md` — *expected LLM output* for
+  the same prompt, Mass Effect skin (proves facts-stable /
+  framing-adapts: only the `voice-rule` differs). Not a deterministic
+  golden.
+- The deterministic template renderer is now `narrator-list` (formerly
+  `narrator-brief`); its goldens live next to the fixture as
+  `expected-narrator-list*.md`.
 - `statusline.sample.txt` — single-line ambient cue.

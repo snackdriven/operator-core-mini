@@ -26,12 +26,19 @@ CASES: list[tuple[str, list[str], str]] = [
     ("renderers/session_primer.py", [], "expected-session-primer.md"),
     ("renderers/daily_brief.py", [], "expected-daily-brief.md"),
     ("renderers/statusline.py", [], "expected-statusline.txt"),
-    ("renderers/narrator_brief.py", [], "expected-narrator-brief.md"),
+    # narrator-list — the template-driven structured surface (formerly
+    # narrator-brief; renamed per ADR 0005 clarification 2026-04-29).
+    ("renderers/narrator_list.py", [], "expected-narrator-list.md"),
     (
-        "renderers/narrator_brief.py",
+        "renderers/narrator_list.py",
         ["--skin", "mass-effect"],
-        "expected-narrator-brief.mass-effect.md",
+        "expected-narrator-list.mass-effect.md",
     ),
+    # narrator-brief — the prompt-driven surface; output is a deterministic
+    # prompt artefact for an LLM (the LLM step is outside the renderer
+    # boundary). The prompt itself is testable as a stable golden because
+    # build_fact_bundle is deterministic for a fixed (operator_root, now).
+    ("renderers/narrator_brief.py", [], "expected-narrator-brief.prompt.md"),
 ]
 
 

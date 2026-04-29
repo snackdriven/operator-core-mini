@@ -2,13 +2,13 @@
 id: nhha-rcm-board-2026-04-29
 freshness_class: current
 memory_class: replaceable-truth
-scope: work
+area: work
 dated: 2026-04-29
 created_at: 2026-04-29T07:45:00Z
 ttl_seconds: 604800
 tags: [nhha, rcm, jira]
 renderer_hints:
-  surfaces: [session-primer, daily-brief, narrator-brief]
+  surfaces: [session-primer, daily-brief, narrator-list, narrator-brief]
   priority: 60
 ---
 2026-04-29 — Current board reflects post-launch fast-follows; phase 2

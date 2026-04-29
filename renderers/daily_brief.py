@@ -6,11 +6,13 @@ The daily brief is the renderer the operator opens first thing in the
 morning. It assumes session context already exists (the session primer
 covers identity / posture / pinned defaults) and focuses on **what to
 move on today** — current backpack items, recent items that need
-verification, and what aged out overnight.
+verification, what aged out overnight, and what was replaced overnight.
 
 Per ADR 0003 this is a pure projection. Per ADR 0004 the consent gate
 runs before any rendering work; items scoped to a forbidden posture
-never appear, named or otherwise.
+never appear, named or otherwise. The renderer is a thin layout over
+the shared FactBundle (see ``_common.py``); fact selection lives in
+the bundle so this surface and others can't disagree about today.
 
 Sections rendered (when data is present):
 
@@ -18,8 +20,12 @@ Sections rendered (when data is present):
   * Near today — current backpack items sorted by priority.
   * Verify before acting — recent items + items aged past the policy
     threshold.
-  * What aged out — backpack items in ``_replaced/`` with a ``replaces``
-    chain, treated as the overnight diff.
+  * Aged out overnight — items demoted to Hoard since the last render
+    (per follow-up #3, 2026-04-29: this section is now Hoard-sourced;
+    ``backpack/_replaced/`` is surfaced separately as "Replaced
+    overnight").
+  * Replaced overnight — items in ``backpack/_replaced/`` that were
+    superseded by a newer entry in the same id family.
   * This week — current items in the ``recent`` band that don't need verify.
   * Consent gate — count-only summary of suppressed items.
 
@@ -39,34 +45,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _common import (  # noqa: E402
     age_days,
-    applies_here,
-    by_priority,
-    consent_filter,
-    load_frontmatter,
-    needs_verify,
+    build_fact_bundle,
     parse_iso,
-    read_backpack,
-    read_doctrine,
-    read_freshness_policy,
 )
 
 
 RENDERER_ID = "daily-brief"
-
-
-def read_replaced(operator_root: Path) -> list[dict]:
-    """Read ``backpack/_replaced/*.md`` (the overnight diff substrate)."""
-    out: list[dict] = []
-    p = operator_root / "backpack" / "_replaced"
-    if not p.is_dir():
-        return out
-    for f in sorted(p.rglob("*.md")):
-        fm, body = load_frontmatter(f)
-        if "value" not in fm and body:
-            fm["value"] = body
-        fm["_path"] = str(f.relative_to(operator_root))
-        out.append(fm)
-    return out
 
 
 def first_line(s: str | None) -> str:
@@ -77,104 +61,78 @@ def first_line(s: str | None) -> str:
 
 def render(operator_root: Path, now: datetime | None = None) -> str:
     now = now or datetime.now(timezone.utc)
-    doctrine = read_doctrine(operator_root)
-    backpack = read_backpack(operator_root)
-    replaced = read_replaced(operator_root)
-    policy = read_freshness_policy(operator_root)
-
-    # Apply consent gate to everything we might surface. Run on the union
-    # so per-policy counts cover both backpack and the overnight diff and
-    # we render one banner per policy rather than two.
-    combined = [("bp", b) for b in backpack] + [("rp", b) for b in replaced]
-    kept_combined, omitted, gate_messages = consent_filter(
-        [item for _, item in combined], doctrine, RENDERER_ID
-    )
-    kept_ids = {id(item) for item in kept_combined}
-    backpack = [b for b in backpack if id(b) in kept_ids]
-    replaced = [b for b in replaced if id(b) in kept_ids]
-
-    here = lambda b: applies_here(b, RENDERER_ID)
-
-    pinned_bp = sorted([b for b in backpack if b.get("freshness_class") == "pinned" and here(b)], key=by_priority)
-    current_bp = sorted([b for b in backpack if b.get("freshness_class") == "current" and here(b)], key=by_priority)
-    recent_bp = sorted([b for b in backpack if b.get("freshness_class") == "recent" and here(b)], key=by_priority)
-    timeline_bp = sorted([b for b in backpack if b.get("memory_class") == "timeline" and here(b)], key=by_priority)
-
-    verify_after_days = (policy or {}).get("rules", {}).get("verify_after_days", 7)
-    verify_items = [b for b in (current_bp + recent_bp) if needs_verify(b, now, verify_after_days)]
-
-    # "This week" — recent items that DON'T need verify (gentler band).
-    this_week = [b for b in recent_bp if b not in verify_items]
-
-    # "Today" comes from a backpack item with memory_class=timeline that
-    # is dated today and tagged life-state. If consent-gated for this
-    # renderer, it's already filtered out and this section is empty.
-    today_items = [
-        b for b in timeline_bp
-        if str(b.get("dated") or "")[:10] == now.strftime("%Y-%m-%d")
-        and "life-state" in (b.get("tags") or [])
-    ]
+    bundle = build_fact_bundle(operator_root, now, RENDERER_ID)
 
     today = now.strftime("%A, %Y-%m-%d")
     lines: list[str] = []
     lines.append(f"# Daily Brief — {today}")
     lines.append("")
     lines.append("> Generated from Backpack + Doctrine. Edit sources, not this file.")
-    lines.append(f"> Renderer: `{RENDERER_ID}`. Items: {len(backpack)} backpack, {len(replaced)} replaced overnight.")
+    lines.append(
+        f"> Renderer: `{RENDERER_ID}`. Items: {bundle.backpack_total} backpack, "
+        f"{bundle.aged_out_total} aged out, {bundle.replaced_total} replaced."
+    )
     lines.append("")
 
-    if today_items:
+    if bundle.today_lifestate:
         lines.append("## Today")
         lines.append("")
-        for b in today_items:
-            lines.append(first_line(b.get("value")))
+        lines.append(first_line(bundle.today_lifestate.get("value")))
         lines.append("")
 
-    if current_bp:
+    if bundle.current_bp:
         lines.append("## Near today")
         lines.append("")
-        for b in current_bp:
+        for b in bundle.current_bp:
             lines.append(f"- **{b['id']}** — {first_line(b.get('value'))}")
         lines.append("")
 
-    if verify_items:
+    if bundle.verify_items:
         lines.append("## Verify before acting")
         lines.append("")
-        for b in verify_items:
+        for b in bundle.verify_items:
             age = age_days(b, now)
             age_note = f"~{age:.0f}d old" if age is not None else "no created_at"
             lines.append(f"- **{b['id']}** ({age_note}). {first_line(b.get('value'))}")
         lines.append("")
 
-    if replaced:
-        lines.append("## What aged out overnight")
+    # Follow-up #3 — real aged-out comes from Hoard, not _replaced.
+    if bundle.aged_out:
+        lines.append("## Aged out overnight")
         lines.append("")
-        for b in replaced:
+        for b in bundle.aged_out:
+            ts = (b.get("aged_out_at") or "").split("T")[0] or "?"
+            lines.append(f"- **{b['id']}** (aged out {ts}). {first_line(b.get('value'))}")
+        lines.append("")
+
+    if bundle.replaced:
+        lines.append("## Replaced overnight")
+        lines.append("")
+        for b in bundle.replaced:
             replaces_target = ""
-            # An item in _replaced was itself superseded; surface its prior id.
             if b.get("replaces"):
                 replaces_target = f" → replaced `{b['replaces']}`"
             lines.append(f"- **{b['id']}**{replaces_target}. Demoted from active carry-state.")
         lines.append("")
 
-    if this_week:
+    if bundle.this_week:
         lines.append("## This week (recent band)")
         lines.append("")
-        for b in this_week:
+        for b in bundle.this_week:
             lines.append(f"- **{b['id']}** — {first_line(b.get('value'))}")
         lines.append("")
 
-    if pinned_bp:
+    if bundle.pinned_bp:
         lines.append("## Reference shelf (Backpack: pinned)")
         lines.append("")
-        for b in pinned_bp:
+        for b in bundle.pinned_bp:
             lines.append(f"- **{b['id']}** — {first_line(b.get('value'))}")
         lines.append("")
 
-    if gate_messages:
+    if bundle.gate_messages:
         lines.append("## Consent gate")
         lines.append("")
-        for msg in gate_messages:
+        for msg in bundle.gate_messages:
             lines.append(msg)
         lines.append("")
 

@@ -8,6 +8,6 @@ body: |
   words.
 pinned: true
 stability: stable
-applies_to: [narrator-brief, daily-brief, session-primer]
+applies_to: [narrator-list, narrator-brief, daily-brief, session-primer]
 created_at: 2025-12-01T00:00:00Z
 ---

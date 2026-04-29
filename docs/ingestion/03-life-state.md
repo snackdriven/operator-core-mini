@@ -48,7 +48,7 @@ or per pattern, never blanket.
 Drizzle migrations).
 
 **Maps to:**
-- Each mood/habit row → Hoard `journal-entry` with `scope: life`,
+- Each mood/habit row → Hoard `journal-entry` with `area: life`,
   `source.kind: journal`, `source.ref: inside-weather/<table>/<row-id>`.
 - An optional **daily weather rollup** Hoard `journal-entry` keyed
   `weather-YYYY-MM-DD` summarizing sleep, mood, body load.
@@ -57,7 +57,7 @@ Drizzle migrations).
 **Opt-in to Backpack:** if the user has set
 `policy/life-state-policy.json#promote_daily_weather: true`, the daily
 rollup is also written to Backpack as id `weather-YYYY-MM-DD` with
-`scope: life`, `requires_consent: true`, `ambient_only: true`,
+`area: life`, `requires_consent: true`, `ambient_only: true`,
 `memory_class: expiring-tactical`, `ttl_seconds: 86400` (1 day —
 expires by tomorrow morning's rollup).
 
@@ -84,7 +84,7 @@ specific journal entry to be carried forward, they tag it explicitly
 **Source:** meat-suit's journal/data store (`data/`, `meat_suit/`).
 
 **Maps to:**
-- Each entry → Hoard `journal-entry`, `scope: life`,
+- Each entry → Hoard `journal-entry`, `area: life`,
   `source.kind: journal`, `source.ref: meat-suit/<entry-id>`.
 - Body-state cues (e.g. "body 4/10", "pain spike", "fatigue heavy") become
   separate Hoard `note` entries with `tags: [body, signal]` so they are
@@ -150,7 +150,7 @@ in surface by surface. There is no "global enable."
 ## Frontmatter defaults
 
 ```yaml
-scope: life
+area: life
 source:
   kind: journal
 renderer_hints:

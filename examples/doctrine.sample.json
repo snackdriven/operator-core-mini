@@ -64,7 +64,7 @@
       "stability": "evolving",
       "voice": {
         "skin": "good-place",
-        "scope": ["narrator-brief"],
+        "scope": ["narrator-list", "narrator-brief"],
         "register": "warm",
         "do": [
           "lead with the body check when life-state is present",
@@ -78,7 +78,7 @@
         ],
         "facts_stable": true
       },
-      "applies_to": ["narrator-brief"]
+      "applies_to": ["narrator-list", "narrator-brief"]
     },
     {
       "id": "narrator-mass-effect-skin",
@@ -89,7 +89,7 @@
       "stability": "evolving",
       "voice": {
         "skin": "mass-effect",
-        "scope": ["narrator-brief"],
+        "scope": ["narrator-list", "narrator-brief"],
         "register": "terse",
         "do": [
           "open with mission name (the day's primary objective)",
@@ -103,7 +103,7 @@
         ],
         "facts_stable": true
       },
-      "applies_to": ["narrator-brief"]
+      "applies_to": ["narrator-list", "narrator-brief"]
     },
     {
       "id": "github-source-of-truth",
@@ -124,7 +124,7 @@
         "scope": "health-records",
         "posture": "forbidden",
         "applies_to_pathways": ["transcripts", "narrator-vault", "scratch-pad", "life-state"],
-        "applies_to_renderers": ["narrator-brief", "daily-brief", "session-primer", "statusline"],
+        "applies_to_renderers": ["narrator-list", "narrator-brief", "daily-brief", "session-primer", "statusline"],
         "rationale": "Health data has long-tail consequences and crosses contexts (work renderers, shared screens). Keeping it out of the substrate entirely is simpler than per-surface redaction."
       }
     },

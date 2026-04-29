@@ -18,7 +18,8 @@ operator-core-schemas/
 │   ├── session_primer.py      session-start markdown briefing
 │   ├── daily_brief.py         morning resumption surface
 │   ├── statusline.py          single-line ambient cue
-│   └── narrator_brief.py      same facts, voice-rule controlled framing
+│   ├── narrator_list.py       same facts, voice-rule controlled framing (template)
+│   └── narrator_brief.py      prompt artefact for an LLM to render as prose
 ├── CONTRIBUTING.md   how to change anything in this repo
 └── docs/
     ├── ingestion/    Phase 3 — how outside systems feed the substrate
@@ -43,7 +44,7 @@ operator-core-schemas/
 | [Phase 1](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-1--define-the-substrate) — define substrate | **done** | 8 schemas in `schemas/` |
 | [Phase 2](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-2--add-examples) — add examples | **done** | examples + renderer outputs + ingestion trace |
 | [Phase 3](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-3--define-ingestion-pathways) — define ingestion | **done** | 6 docs + ingestion-event schema |
-| Phase 4 — renderer prototypes | **in progress** | 4 renderers shipped: session-primer, daily-brief, statusline, narrator-brief |
+| Phase 4 — renderer prototypes | **in progress** | 5 renderers shipped: session-primer, daily-brief, statusline, narrator-list (template), narrator-brief (prompt) |
 | Phase 5 — evaluate and prune | not started | |
 
 ## Start here

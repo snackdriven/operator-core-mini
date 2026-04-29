@@ -197,3 +197,15 @@ need to read the same posture.
   `gate_messages` list, and `consent_gate_short` returns the compact form
   for ambient surfaces. The contract is documented in
   [renderers/README.md](../../renderers/README.md#consent-gate-banners-adr-0004-follow-up).
+
+- **`backpack-item.scope` → `area` (2026-04-29).** The Backpack/Hoard
+  enum field for lifecycle classification (work / life / assistant /
+  identity / meta) was originally named `scope`, the same word the
+  consent object uses for its free-string field (e.g. `health-records`).
+  The two are unrelated concepts and never share values, but they shared
+  a name, which led to a silently dead clause in the consent matcher
+  (`policy.scope == item.scope` could never fire). The enum has been
+  renamed to `area`. Consent matching is now unambiguously by tags.
+  Migration script: [tools/rename_scope_to_area.py](../../tools/rename_scope_to_area.py).
+  This is the resolution of follow-up #7 in
+  [PLAN-followups-2026-04-29.md](../PLAN-followups-2026-04-29.md).

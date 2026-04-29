@@ -2,7 +2,7 @@
 id: q2-roadmap-sync-2026-04-29
 freshness_class: current
 memory_class: timeline
-scope: work
+area: work
 dated: 2026-04-29
 created_at: 2026-04-29T15:30:00Z
 ttl_seconds: 1209600
@@ -13,7 +13,7 @@ source:
   ref: 01HW-q2-2026-04-29
 summary: "q2-sync 2pm"
 renderer_hints:
-  surfaces: [session-primer, daily-brief, statusline, narrator-brief]
+  surfaces: [session-primer, daily-brief, statusline, narrator-list, narrator-brief]
   priority: 70
 ---
 2026-04-29 — Q2 roadmap sync: scope locked for May, NHHA RCM phase 2

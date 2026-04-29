@@ -43,7 +43,8 @@ Every renderer in this directory MUST:
 | `session-primer`    | `session_primer.py`   | Session-start markdown briefing: identity, pinned doctrine, what's near, what to verify. |
 | `daily-brief`       | `daily_brief.py`      | Morning resumption surface: today's shape, near-today items, verify nudges, overnight diff. |
 | `statusline`        | `statusline.py`       | Single-line ambient cue: date · top current item · today's event · stale count · private count. |
-| `narrator-brief`    | `narrator_brief.py`   | Same facts as daily-brief, framed by an active voice-rule (skin) from Doctrine. Demonstrates ADR 0003's facts-stable / framing-adapts property. |
+| `narrator-list`     | `narrator_list.py`    | Template-driven structured surface: same facts as daily-brief, framed by an active voice-rule (skin) from Doctrine. Deterministic, LLM-free. Demonstrates ADR 0003's facts-stable / framing-adapts property. |
+| `narrator-brief`    | `narrator_brief.py`   | Prompt-driven companion to `narrator-list`: emits a deterministic prompt artefact (system block + Facts + Instruction) for an LLM to render into prose offline. The LLM step is outside the renderer boundary. See [ADR 0005 clarification 2026-04-29](../docs/decisions/0005-voice-rules-and-routing-rules.md#clarification--2026-04-29-narrator-surfaces-split). |
 
 Shared loaders, the consent gate, and voice/routing-rule selection live in
 `_common.py`. New renderers should import from there rather than re-implementing
@@ -56,15 +57,17 @@ python renderers/session_primer.py examples/operator-root-fixture \
     --now 2026-04-29T14:00:00Z
 python renderers/daily_brief.py    examples/operator-root-fixture --now 2026-04-29T14:00:00Z
 python renderers/statusline.py     examples/operator-root-fixture --now 2026-04-29T14:00:00Z
-python renderers/narrator_brief.py examples/operator-root-fixture --now 2026-04-29T14:00:00Z
-python renderers/narrator_brief.py examples/operator-root-fixture --now 2026-04-29T14:00:00Z \
+python renderers/narrator_list.py  examples/operator-root-fixture --now 2026-04-29T14:00:00Z
+python renderers/narrator_list.py  examples/operator-root-fixture --now 2026-04-29T14:00:00Z \
     --skin mass-effect
+python renderers/narrator_brief.py examples/operator-root-fixture --now 2026-04-29T14:00:00Z
 ```
 
 The fixture's expected outputs are committed alongside it as
 `expected-session-primer.md`, `expected-daily-brief.md`,
-`expected-statusline.txt`, `expected-narrator-brief.md`, and
-`expected-narrator-brief.mass-effect.md`. `tools/test_renderers.py` diffs
+`expected-statusline.txt`, `expected-narrator-list.md`,
+`expected-narrator-list.mass-effect.md`, and the prompt golden
+`expected-narrator-brief.prompt.md`. `tools/test_renderers.py` diffs
 actual against expected for every case and is invoked by
 `tools/validate.py` so CI catches drift.
 
@@ -84,7 +87,10 @@ actual against expected for every case and is invoked by
 
 ## Voice rules and routing rules
 
-The narrator brief introduces two Doctrine kinds renderers can lean on:
+The narrator surfaces (`narrator-list` and `narrator-brief`) introduce
+two Doctrine kinds renderers can lean on. Voice-rule selection is
+identical for both surfaces — see the
+[ADR 0005 clarification](../docs/decisions/0005-voice-rules-and-routing-rules.md#clarification--2026-04-29-narrator-surfaces-split):
 
 - **`kind: voice-rule`** declares a tonal envelope (skin id, register,
   do/avoid lists, scope of renderers it applies to). Renderers pick one

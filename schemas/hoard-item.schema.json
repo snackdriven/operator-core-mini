@@ -55,8 +55,9 @@
       },
       "additionalProperties": false
     },
-    "scope": {
+    "area": {
       "type": "string",
+      "description": "Lifecycle classification — which slice of life this item belongs to. PER FOLLOW-UP #7 (2026-04-29): renamed from `scope` to disambiguate from consent.scope (a free-string used by consent policies).",
       "enum": ["work", "life", "assistant", "identity", "meta"]
     },
     "source": {
