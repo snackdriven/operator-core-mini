@@ -1,7 +1,7 @@
 # Session primer — 2026-04-29 14:00 UTC
 
 > Generated from Backpack + Doctrine. Do not edit; edit the source files instead.
-> Renderer: `session-primer`. Items: 5 backpack, 5 doctrine.
+> Renderer: `session-primer`. Items: 6 backpack, 9 doctrine.
 
 ## Identity (Doctrine: pinned)
 
@@ -13,6 +13,7 @@ low-demand surfaces.
 
 - **Writing preferences** — Plain language. Dated entries. No exclamation points. Short paragraphs.
 - **Default bug investigation protocol** — Reproduce locally, capture seed data, check Sentry for prior occurrences,
+- **Health-state items are forbidden on shared surfaces** — Items tagged or scoped 'health' are personal context. They MUST NOT
 - **Narrator vault is opt-out at the file level** — Markdown files in the narrator vault are ingested by default. A file is
 - **GitHub is the source of truth** — When Backpack and a repo disagree about state, the repo wins. Update
 
@@ -25,6 +26,7 @@ low-demand surfaces.
 - **qa-queue-2026-04-29** (2026-04-29). 2026-04-29 — 4 in-flight TTOAD tickets: 367 in code review with auth
 - **q2-roadmap-sync-2026-04-29** (2026-04-29). 2026-04-29 — Q2 roadmap sync: scope locked for May, NHHA RCM phase 2
 - **nhha-rcm-board-2026-04-29** (2026-04-29). 2026-04-29 — Current board reflects post-launch fast-follows; phase 2
+- **life-state-2026-04-29** (2026-04-29). 2026-04-29 — Sleep 6h, body 4/10, mood mild. One real meeting today,
 
 ## Verify before acting
 

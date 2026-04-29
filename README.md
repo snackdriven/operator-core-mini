@@ -14,7 +14,11 @@ operator-core-schemas/
 │   └── ingestion-trace/   one entry's full lifecycle across three layers
 ├── tools/            reference scripts: validate.py, lint.py, migrate.py, bp_build.py
 ├── renderers/        pure projections over Backpack + Doctrine (Phase 4)
-│   └── session_primer.py   prototype: session-start markdown briefing
+│   ├── _common.py             shared loaders, consent gate, voice/routing helpers
+│   ├── session_primer.py      session-start markdown briefing
+│   ├── daily_brief.py         morning resumption surface
+│   ├── statusline.py          single-line ambient cue
+│   └── narrator_brief.py      same facts, voice-rule controlled framing
 ├── CONTRIBUTING.md   how to change anything in this repo
 └── docs/
     ├── ingestion/    Phase 3 — how outside systems feed the substrate
@@ -39,7 +43,7 @@ operator-core-schemas/
 | [Phase 1](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-1--define-the-substrate) — define substrate | **done** | 8 schemas in `schemas/` |
 | [Phase 2](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-2--add-examples) — add examples | **done** | examples + renderer outputs + ingestion trace |
 | [Phase 3](https://github.com/snackdriven/operator-core-mini/blob/main/ROADMAP.md#phase-3--define-ingestion-pathways) — define ingestion | **done** | 6 docs + ingestion-event schema |
-| Phase 4 — renderer prototypes | **in progress** | `session-primer` prototype shipped in `renderers/` |
+| Phase 4 — renderer prototypes | **in progress** | 4 renderers shipped: session-primer, daily-brief, statusline, narrator-brief |
 | Phase 5 — evaluate and prune | not started | |
 
 ## Start here
@@ -61,3 +65,4 @@ consequences:
 - [ADR 0002](./docs/decisions/0002-doctrine-vs-hoard.md) — Doctrine and Hoard are different layers, not different views.
 - [ADR 0003](./docs/decisions/0003-renderers-over-one-truth-layer.md) — Renderers over one truth layer; not one truth per surface.
 - [ADR 0004](./docs/decisions/0004-consent-posture-is-doctrine.md) — Consent posture is Doctrine, not infrastructure.
+- [ADR 0005](./docs/decisions/0005-voice-rules-and-routing-rules.md) — Voice rules and routing rules are Doctrine, selected by contract.

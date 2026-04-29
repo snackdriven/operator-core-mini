@@ -12,10 +12,11 @@ were considered, and the consequences accepted in making it.
 | [0002](./0002-doctrine-vs-hoard.md) | Doctrine and Hoard are different layers, not different views | Accepted | 2026-04-29 |
 | [0003](./0003-renderers-over-one-truth-layer.md) | Renderers over one truth layer; not one truth per surface | Accepted | 2026-04-29 |
 | [0004](./0004-consent-posture-is-doctrine.md) | Consent posture is Doctrine, not infrastructure | Accepted | 2026-04-29 |
+| [0005](./0005-voice-rules-and-routing-rules.md) | Voice rules and routing rules are Doctrine, selected by contract | Accepted | 2026-04-29 |
 
 ## How to add an ADR
 
-1. Pick the next four-digit number (`0005-…`).
+1. Pick the next four-digit number (`0006-…`).
 2. Use a short, declarative title — what was decided, in one line.
 3. Follow the section structure of the existing ADRs:
    - **Status / Date / Deciders / Supersedes / Superseded by / Related**

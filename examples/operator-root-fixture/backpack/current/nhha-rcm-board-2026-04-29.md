@@ -8,7 +8,7 @@ created_at: 2026-04-29T07:45:00Z
 ttl_seconds: 604800
 tags: [nhha, rcm, jira]
 renderer_hints:
-  surfaces: [session-primer, daily-brief]
+  surfaces: [session-primer, daily-brief, narrator-brief]
   priority: 60
 ---
 2026-04-29 — Current board reflects post-launch fast-follows; phase 2

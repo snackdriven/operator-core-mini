@@ -83,6 +83,14 @@
         "rationale": {
           "type": "string",
           "description": "One- or two-sentence reason this posture exists. Helps reviewers reason about exceptions."
+        },
+        "gate_message": {
+          "type": "string",
+          "description": "Optional template a renderer SHOULD use when reporting the consent gate firing. Supports the placeholder {count} for the suppressed-item count. Renderers fall back to a generic count-only message when this is absent. MUST NOT name suppressed items."
+        },
+        "gate_message_short": {
+          "type": "string",
+          "description": "Optional compact form of gate_message for ambient/single-line surfaces (e.g. statusline). Supports {count}. Renderers fall back to gate_message, then to a generic short token, when this is absent."
         }
       },
       "additionalProperties": false

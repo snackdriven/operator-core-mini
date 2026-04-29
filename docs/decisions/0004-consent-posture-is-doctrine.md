@@ -185,3 +185,15 @@ need to read the same posture.
   Doctrine is the right home for low-churn stable rules.
 - [ADR 0003 — Renderers over one truth layer](./0003-renderers-over-one-truth-layer.md)
   — same shape: renderers read shared rules, do not embed their own.
+
+## Follow-ups
+
+- **Doctrine-driven gate wording (2026-04-29).** The `consent` object now
+  also accepts optional `gate_message` and `gate_message_short` template
+  strings (with `{count}` substitution). Renderers SHOULD use them when
+  a policy fires; otherwise they fall back to a generic count-only line.
+  This keeps banner wording a policy-level choice instead of a renderer
+  detail. Implementation: `renderers/_common.py:consent_filter` returns a
+  `gate_messages` list, and `consent_gate_short` returns the compact form
+  for ambient surfaces. The contract is documented in
+  [renderers/README.md](../../renderers/README.md#consent-gate-banners-adr-0004-follow-up).

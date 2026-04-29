@@ -158,6 +158,38 @@ def run(repo_root: Path) -> bool:
             continue
         validate(data, "schemas/backpack-item.schema.json", rel)
 
+    # Operator-root fixture (Phase 4 renderer fixture).
+    fixture_root = repo_root / "examples/operator-root-fixture"
+    if fixture_root.is_dir():
+        for bf in sorted(glob.glob(str(fixture_root / "backpack/**/*.md"), recursive=True)):
+            rel = os.path.relpath(bf, repo_root)
+            try:
+                data = load_frontmatter(Path(bf))
+            except Exception as exc:
+                ok = False
+                print(f"[FAIL] {rel}: {exc}")
+                continue
+            validate(data, "schemas/backpack-item.schema.json", rel)
+        for df in sorted(glob.glob(str(fixture_root / "doctrine/**/*.md"), recursive=True)):
+            rel = os.path.relpath(df, repo_root)
+            try:
+                data = load_frontmatter(Path(df))
+            except Exception as exc:
+                ok = False
+                print(f"[FAIL] {rel}: {exc}")
+                continue
+            validate(data, "schemas/doctrine-entry.schema.json", rel)
+        fp = fixture_root / "policy/freshness.json"
+        if fp.is_file():
+            rel = os.path.relpath(fp, repo_root)
+            try:
+                data = json.load(open(fp))
+            except Exception as exc:
+                ok = False
+                print(f"[FAIL] {rel}: {exc}")
+            else:
+                validate(data, "schemas/freshness-policy.schema.json", rel)
+
     # Structural lint (delegates to tools/lint.py).
     print()
     try:
@@ -167,6 +199,17 @@ def run(repo_root: Path) -> bool:
         import lint  # type: ignore
     lint_ok = lint.run(repo_root)
     if not lint_ok:
+        ok = False
+
+    # Renderer golden tests (delegates to tools/test_renderers.py).
+    print()
+    try:
+        import test_renderers  # type: ignore
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import test_renderers  # type: ignore
+    renderers_ok = test_renderers.run(repo_root)
+    if not renderers_ok:
         ok = False
 
     print()

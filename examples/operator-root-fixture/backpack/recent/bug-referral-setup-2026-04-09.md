@@ -8,7 +8,7 @@ created_at: 2026-04-09T13:20:00Z
 ttl_seconds: 1728000
 tags: [referral, ownership]
 renderer_hints:
-  surfaces: [session-primer]
+  surfaces: [session-primer, daily-brief, narrator-brief]
   priority: 40
 ---
 2026-04-09 — Bug-referral path established with Jamie's team. Re-confirm

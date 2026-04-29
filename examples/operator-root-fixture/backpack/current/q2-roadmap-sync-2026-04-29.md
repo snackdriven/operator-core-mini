@@ -11,8 +11,9 @@ tags: [q2, roadmap, nhha]
 source:
   kind: transcript
   ref: 01HW-q2-2026-04-29
+summary: "q2-sync 2pm"
 renderer_hints:
-  surfaces: [session-primer, daily-brief]
+  surfaces: [session-primer, daily-brief, statusline, narrator-brief]
   priority: 70
 ---
 2026-04-29 — Q2 roadmap sync: scope locked for May, NHHA RCM phase 2
