@@ -836,3 +836,79 @@ for s in session_primer daily_brief statusline narrator_list narrator_brief; do
   python renderers/$s.py /tmp/operator-root --now 2026-04-29T20:00:00Z
 done
 ```
+
+
+## Phase 6 — PR A: correctness foundation (2026-04-29)
+
+Audit of the post-Phase-5 tree surfaced 12 issues. PR A fixes the five
+correctness blockers; PR B (perf/UX) and PR C (data-integrity) are
+deferred.
+
+### Fixes shipped
+
+- **`tools/migrate.py` split (706 → 454 lines).** Hoard-walking logic
+  extracted into `tools/migrate_hoard.py` (268 lines). Shared helpers
+  (slugify, ISO parsing, frontmatter writer, dated-extraction,
+  derive_summary) extracted into `tools/_migrate_common.py` (200
+  lines). The `migrate.py` CLI signature is unchanged:
+  `python tools/migrate.py LEGACY_PATH OUT_ROOT [--with-hoard …]
+  [--now …]`. TTL diversion stays in `migrate.py` because it acts on
+  backpack items, not hoard items.
+- **Freshness-policy migrate output is now schema-valid.** Rewrote
+  `_build_freshness_skeleton` to emit the canonical shape
+  (`rules` block, bands with `max_age_days` + `treatment`,
+  `renderer_budgets`, `tag_overrides`). Added a post-write
+  `_validate_freshness_skeleton` assertion using `jsonschema` (best-
+  effort — skipped silently if `jsonschema` isn't installed).
+- **Hoard storage format locked to `.md` frontmatter.**
+  `tools/bp_build.py` now walks `hoard/**/*.md` and serializes via
+  `split_frontmatter` into `_hoard.jsonl` (522 records on real data,
+  was a 0-byte file before). `schemas/README.md` and
+  `docs/ingestion/00-overview.md` updated to describe the same shape.
+- **`schemas/hoard-item.schema.json` deleted.** Hoard items now
+  validate against `backpack-item.schema.json` (they're just backpack
+  items with `aged_out_at` stamped). `tools/validate.py` walks the
+  hoard tree as `.md`. `examples/hoard-sample.jsonl` removed.
+  `examples/ingestion-trace/hoard/{06,29}.json` rewritten as
+  `hoard/2026/04/{06,29}/q2-roadmap-*.md` in backpack-item shape
+  (`hoard_refs` array, `aged_out_at`, `freshness_class=historical`,
+  `memory_class=timeline`). `decisions/0002-doctrine-vs-hoard.md`
+  edited to drop the hoard-item.schema reference.
+- **`tools/test_migrate.py` (NEW, 455 lines, 24 tests).** Six classes
+  covering: 3-tier date mining; field normalization (scope→area, kind
+  defaults, freshness_class fallbacks); freshness-dir derivation;
+  TTL-eligibility logic; freshness-skeleton schema-cleanliness; full
+  end-to-end migration with and without `--with-hoard`. Wired into
+  `tools/validate.py` after the renderer-tests block. **Caught a real
+  bug**: pinned-and-expired items were being added to the
+  `aged_out_via_ttl` list. Fixed by tracking `is_pinned_key` separately
+  and short-circuiting before TTL eligibility is checked.
+
+### Bonus fixes
+
+- **`tools/bp_build.py`** — index keys `by_scope` → `by_area` (matches
+  the schema; was schema-invalid against `index.schema.json`).
+- **`tools/bootstrap_doctrine.py`** — docstring expanded to clarify the
+  9 entries are *seeds*: identity, writing prefs, two voices, two
+  routing rules, three consent policies. Some are unused by current
+  renderers; they're scaffolding for downstream surfaces.
+
+### Verification
+
+`tools/validate.py` returns `ALL PASSED` **twice** (exit 0). Counts:
+8 schemas self-valid, 7 single-file examples valid, 21 ingestion
+events valid, 2 ingestion-trace hoard `.md` files valid, all renderer
+goldens byte-identical, **24 migrate-tests pass**, 7 lint checks pass.
+
+Real-data run against `/tmp/scratch-pad` produced 117 migrated items
+(13 TTL-diverted, 4 evergreen, 104 in backpack), 495 dailies + 14
+loose artifacts in hoard, 9 doctrine seeds, `_hoard.jsonl` with 522
+records, all 5 renderers clean.
+
+### Deferred
+
+- **PR B (perf + UX):** issues 4, 8, 9, 10 — will batch after PR A
+  lands.
+- **PR C (data integrity):** issue 11 — separate PR.
+- **Doctrine-kind enum simplification (issue 5):** revisit in a future
+  ADR; current 9-kind enum is intentional, just under-consumed.

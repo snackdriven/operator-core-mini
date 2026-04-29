@@ -60,10 +60,14 @@ They are not views over a shared store, and they are not unified by tag.
 
 Specifically:
 
-1. **Schemas are separate and don't share fields beyond `_meta` and
-   renderer hints.** `schemas/doctrine-entry.schema.json` and
-   `schemas/hoard-item.schema.json` define disjoint required fields.
-   Crossing between them requires explicit transformation, not a flag flip.
+1. **Schemas are separate.** `schemas/doctrine-entry.schema.json`
+   defines Doctrine's required fields; Hoard items reuse
+   `schemas/backpack-item.schema.json` (per follow-up #3, 2026-04-29:
+   the optional `aged_out_at` field marks an item as aged-out into
+   Hoard, while Backpack items live without it). The doctrine schema
+   and the backpack-item schema define disjoint required fields, so
+   crossing between layers still requires explicit transformation, not
+   a flag flip.
 
 2. **Doctrine has seven kinds; Hoard has eleven (and counting).** The
    Doctrine kinds (`identity`, `defaults`, `workflow`, `routing-rule`,
@@ -73,10 +77,11 @@ Specifically:
    summary, screenshot, log, and so on — are an open set.
 
 3. **Storage is layer-specific.** Doctrine lives in `doctrine/<kind>/<id>.md`
-   with frontmatter. Hoard lives in `hoard/YYYY/MM/DD/<id>.json` plus
-   `_hoard.jsonl`. Indexes regenerate independently. A renderer that
-   reads only Doctrine never touches Hoard's directory tree, and the
-   inverse holds.
+   with frontmatter. Hoard lives in `hoard/YYYY/MM/DD/<id>.md` (also
+   markdown with frontmatter, per follow-up #3, 2026-04-29) plus a
+   generated `_hoard.jsonl` index. Indexes regenerate independently. A
+   renderer that reads only Doctrine never touches Hoard's directory
+   tree, and the inverse holds.
 
 4. **Doctrine writes are user-mediated. Hoard writes are not.** Adapters
    that detect potential Doctrine changes emit
@@ -169,6 +174,6 @@ isn't.
 
 - [docs/02-system-architecture.md](https://github.com/snackdriven/operator-core-mini/blob/main/docs/02-system-architecture.md) — upstream three-layer model.
 - [docs/03-repo-map.md](https://github.com/snackdriven/operator-core-mini/blob/main/docs/03-repo-map.md) — chronicle history (the rejected unification).
-- `schemas/doctrine-entry.schema.json`, `schemas/hoard-item.schema.json`.
+- `schemas/doctrine-entry.schema.json`, `schemas/backpack-item.schema.json` (now also covers Hoard items per follow-up #3, 2026-04-29).
 - [docs/ingestion/02-narrator.md](../ingestion/02-narrator.md) — Doctrine-proposed gating.
 - [docs/ingestion/05-promotion-demotion.md](../ingestion/05-promotion-demotion.md) — lifecycle.

@@ -118,9 +118,10 @@ def run(repo_root: Path) -> bool:
             continue
         validate(data, schema_rel, example_rel)
 
-    # JSONL examples
+    # JSONL examples (per follow-up #3, 2026-04-29: hoard items are .md
+    # frontmatter, not JSONL; the only remaining JSONL stream is ingestion
+    # events).
     for jsonl_rel, schema_rel in [
-        ("examples/hoard-sample.jsonl", "schemas/hoard-item.schema.json"),
         ("examples/ingestion-trace/events/events.jsonl", "schemas/ingestion-event.schema.json"),
     ]:
         path = repo_root / jsonl_rel
@@ -137,16 +138,18 @@ def run(repo_root: Path) -> bool:
                 print(f"[FAIL] {jsonl_rel}:{i}: {str(exc).splitlines()[0]}")
         print(f"[OK] {jsonl_rel} ({n} records valid)")
 
-    # Trace files
-    for hf in sorted(glob.glob(str(repo_root / "examples/ingestion-trace/hoard/*.json"))):
+    # Ingestion-trace hoard files (per follow-up #3, 2026-04-29: hoard
+    # items share schemas/backpack-item.schema.json; the optional
+    # `aged_out_at` field flips them into the aged-out window).
+    for hf in sorted(glob.glob(str(repo_root / "examples/ingestion-trace/hoard/**/*.md"), recursive=True)):
         rel = os.path.relpath(hf, repo_root)
         try:
-            data = json.load(open(hf))
+            data = load_frontmatter(Path(hf))
         except Exception as exc:
             ok = False
             print(f"[FAIL] {rel}: {exc}")
             continue
-        validate(data, "schemas/hoard-item.schema.json", rel)
+        validate(data, "schemas/backpack-item.schema.json", rel)
 
     for bf in sorted(glob.glob(str(repo_root / "examples/ingestion-trace/backpack/**/*.md"), recursive=True)):
         rel = os.path.relpath(bf, repo_root)
@@ -221,6 +224,16 @@ def run(repo_root: Path) -> bool:
         import test_renderers  # type: ignore
     renderers_ok = test_renderers.run(repo_root)
     if not renderers_ok:
+        ok = False
+
+    # Migrate fixture tests (delegates to tools/test_migrate.py).
+    try:
+        import test_migrate  # type: ignore
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import test_migrate  # type: ignore
+    migrate_ok = test_migrate.run(repo_root)
+    if not migrate_ok:
         ok = False
 
     print()

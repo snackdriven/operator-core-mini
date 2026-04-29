@@ -117,10 +117,11 @@ Together with the Q2 meeting chain, this trace exercises every kind in
 
 ## Validation
 
-- The two Hoard files validate against `schemas/hoard-item.schema.json`.
-- The two Backpack frontmatter files validate against
-  `schemas/backpack-item.schema.json` (after stripping the `---` fences and
-  parsing YAML).
+- The two Hoard files (and the two Backpack frontmatter files) validate
+  against `schemas/backpack-item.schema.json` after stripping the `---`
+  fences and parsing YAML. Per follow-up #3 (2026-04-29), Hoard items
+  share the Backpack item shape; the optional `aged_out_at` field flips
+  them into the aged-out window for renderers.
 - Every line in `events/events.jsonl` (21 records) validates against
   `schemas/ingestion-event.schema.json`.
 - `quarantine/*.json` and `doctrine-proposals/*.md` are reference artifacts;

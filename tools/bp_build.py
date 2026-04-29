@@ -10,7 +10,11 @@ Sketch / reference implementation. Not a production tool. Intent:
   - Emit:
       backpack/_index.json           kind: backpack-index, items: object-of-id
       doctrine/doctrine.lock.json    kind: doctrine-index, items: object-of-id
-      hoard/_hoard.jsonl             one record per line (already-flat Hoard)
+      hoard/_hoard.jsonl             one record per line, sourced from
+                                     hoard/**/*.md frontmatter (per
+                                     follow-up #3, 2026-04-29: hoard
+                                     items live as markdown with YAML
+                                     frontmatter, same shape as backpack)
   - Indexes validate against schemas/index.schema.json (kind enum constrains).
 
 Non-goals: validation of per-item content, demotion, promotion, ingestion.
@@ -76,7 +80,7 @@ def build_backpack_index(operator_root: Path, source_commit: str | None) -> dict
 
     items: dict[str, dict] = {}
     by_freshness: dict[str, int] = {}
-    by_scope: dict[str, int] = {}
+    by_area: dict[str, int] = {}
     pinned_keys: list[str] = []
 
     for path in iter_md(bp_root):
@@ -95,9 +99,11 @@ def build_backpack_index(operator_root: Path, source_commit: str | None) -> dict
         items[item_id] = fm
         fc = fm.get("freshness_class") or "current"
         by_freshness[fc] = by_freshness.get(fc, 0) + 1
-        scope = fm.get("scope") or "work"
-        by_scope[scope] = by_scope.get(scope, 0) + 1
-        if fm.get("pinned"):
+        # Per follow-up #7 (2026-04-29): legacy `scope` was renamed to `area`.
+        # Accept either for older fixtures, but emit `by_area` per the schema.
+        area = fm.get("area") or fm.get("scope") or "work"
+        by_area[area] = by_area.get(area, 0) + 1
+        if fm.get("freshness_class") == "pinned":
             pinned_keys.append(item_id)
 
     return {
@@ -111,7 +117,7 @@ def build_backpack_index(operator_root: Path, source_commit: str | None) -> dict
         "stats": {
             "count": len(items),
             "by_freshness": by_freshness,
-            "by_scope": by_scope,
+            "by_area": by_area,
             "stale_count": 0,  # caller wires demotion sweeps; build does not.
         },
     }
@@ -146,16 +152,21 @@ def build_doctrine_index(operator_root: Path, source_commit: str | None) -> dict
         "items": items,
         "stats": {
             "count": len(items),
-            "by_scope": by_kind,  # piggyback the by_scope slot
+            "by_area": by_kind,  # piggyback the by_area slot for kind tallies
         },
     }
 
 
 def build_hoard_jsonl(operator_root: Path) -> int:
     """
-    Hoard is already JSONL-shaped on disk: hoard/YYYY/MM/DD/<id>.json plus
-    blob attachments. The 'index' is a single concatenated _hoard.jsonl that
-    renderers stream-read. Returns the count written.
+    Hoard items live as markdown-with-frontmatter on disk:
+    ``hoard/YYYY/MM/DD/<id>.md`` (same shape as backpack items per
+    follow-up #3, 2026-04-29). The 'index' is a single concatenated
+    ``_hoard.jsonl`` that renderers stream-read; each line is the
+    parsed frontmatter dict. Returns the count written.
+
+    Blob attachments under ``hoard/**/blobs/`` are skipped — those are
+    payload, not records.
     """
     h_root = operator_root / "hoard"
     if not h_root.exists():
@@ -164,17 +175,19 @@ def build_hoard_jsonl(operator_root: Path) -> int:
     out = h_root / "_hoard.jsonl"
     count = 0
     with out.open("w", encoding="utf-8") as f:
-        for path in sorted(h_root.rglob("*.json")):
-            if path.name == "_hoard.jsonl":
-                continue
-            if path.parent.name == "blobs":
+        for path in sorted(h_root.rglob("*.md")):
+            # Skip blob sidecars (rare for .md, but be defensive).
+            if "blobs" in path.parts:
                 continue
             try:
-                rec = json.loads(path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError as exc:
-                print(f"bad hoard record {path}: {exc}", file=sys.stderr)
+                fm, _body = split_frontmatter(path.read_text(encoding="utf-8"))
+            except (ValueError, yaml.YAMLError) as exc:
+                print(f"bad hoard frontmatter in {path}: {exc}", file=sys.stderr)
                 continue
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            if not fm:
+                print(f"empty hoard frontmatter in {path}", file=sys.stderr)
+                continue
+            f.write(json.dumps(fm, ensure_ascii=False) + "\n")
             count += 1
     return count
 
