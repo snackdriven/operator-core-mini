@@ -37,7 +37,7 @@ def load_schemas(repo_root: Path) -> tuple[dict, dict]:
     for f in sorted(glob.glob(str(repo_root / "schemas" / "*.schema.json"))):
         s = json.load(open(f))
         Draft202012Validator.check_schema(s)
-        rel = os.path.relpath(f, repo_root)
+        rel = os.path.relpath(f, repo_root).replace("\\", "/")
         schemas[rel] = s
         if "$id" in s:
             store[s["$id"]] = s

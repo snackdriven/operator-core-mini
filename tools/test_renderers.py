@@ -60,6 +60,11 @@ def run(repo_root: Path) -> bool:
             print(f"[FAIL] {renderer} {' '.join(extra)}: {exc.stderr.strip() or exc}")
             continue
 
+        # Normalize the operator_root path in the output for cross-platform golden tests
+        actual = actual.replace(str(fixture), "/home/user/workspace/operator-core-schemas/examples/operator-root-fixture")
+        # Handle posix path separators just in case (e.g. if str(fixture) uses \ but output uses /)
+        actual = actual.replace(str(fixture).replace('\\', '/'), "/home/user/workspace/operator-core-schemas/examples/operator-root-fixture")
+
         expected_path = fixture / expected_name
         if not expected_path.is_file():
             ok = False
@@ -68,7 +73,7 @@ def run(repo_root: Path) -> bool:
         expected = expected_path.read_text(encoding="utf-8")
 
         if actual == expected:
-            print(f"[OK] renderer:{renderer} → {expected_name}")
+            print(f"[OK] renderer:{renderer} -> {expected_name}")
             continue
 
         ok = False
@@ -81,7 +86,7 @@ def run(repo_root: Path) -> bool:
                 n=2,
             )
         )
-        print(f"[FAIL] renderer:{renderer} → {expected_name} (output drift)")
+        print(f"[FAIL] renderer:{renderer} -> {expected_name} (output drift)")
         print(diff)
     return ok
 
