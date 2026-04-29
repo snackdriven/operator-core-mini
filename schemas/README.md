@@ -110,6 +110,7 @@ layer, many renderers." Shared inputs documented in `_shared-state.md`.
 | `operator-root-fixture/expected-narrator-list.md` | Narrator-list (template, Good Place skin) | Deterministic template render; what the structured `narrator-list` renderer produces with no skin override. |
 | `operator-root-fixture/expected-narrator-list.mass-effect.md` | Narrator-list (template, Mass Effect skin) | Deterministic template render with `--skin mass-effect`. |
 | `operator-root-fixture/expected-narrator-brief.prompt.md` | Narrator-brief prompt artefact | Deterministic prompt the renderer emits for an LLM to consume. The LLM step is outside the renderer boundary. |
+| `operator-root-fixture/expected-narrator-brief.low-energy.prompt.md` | Narrator-brief prompt artefact (energy-routed) | Same renderer invoked with `--energy low-energy`; routing-rule flips the active voice from `good-place` to `mass-effect`. Regression fixture for ADR 0005 routing-rule selection. |
 | `renders/statusline.sample.txt` | Single-line ambient cue | ~80 char budget; demonstrates RendererHints `priority` and `max_chars_in`. |
 
 ### Ingestion trace (`examples/ingestion-trace/`)

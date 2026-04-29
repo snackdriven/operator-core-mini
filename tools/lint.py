@@ -14,10 +14,17 @@ repo-wide conventions that are not captured in JSON Schema:
   5. Internal markdown links (relative paths) point to files that exist.
   6. No `TODO:` or `FIXME:` markers in committed schemas.
 
+Warn-only checks (do not fail the run, but surface as `[WARN]`):
+
+  * Hoard markdown files in `examples/**/hoard/**/*.md` should declare an
+    `aged_out_at` timestamp in their frontmatter so the renderers' aged-out
+    window logic has something concrete to reason about.
+
 Usage:
     python tools/lint.py [repo-root]
 
 Exits 0 on full success, 1 on any failure (prints the offender).
+Warnings are reported but never affect the exit code.
 Requires: pyyaml.
 """
 from __future__ import annotations
@@ -183,6 +190,44 @@ def check_internal_links(repo_root: Path, errors: list[str]) -> None:
                 )
 
 
+def check_hoard_aged_out_at(repo_root: Path, warnings_out: list[str]) -> None:
+    """Hoard markdown files SHOULD declare `aged_out_at` in frontmatter.
+
+    The schema makes the field optional (older imports may pre-date the
+    aged-out concept), so we surface this as a warning rather than a hard
+    failure. Renderers degrade gracefully when the field is absent, but
+    operators reviewing the hoard benefit from a concrete timestamp.
+    """
+    for path in sorted(repo_root.rglob("*.md")):
+        if any(part in {".git", "node_modules"} for part in path.parts):
+            continue
+        # Match anything under a `hoard/` segment beneath examples/.
+        parts = path.parts
+        if "hoard" not in parts:
+            continue
+        if "examples" not in parts:
+            continue
+        if path.name == "README.md":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if not text.startswith("---\n"):
+            continue
+        m = re.match(r"---\n(.*?)\n---\n?(.*)", text, re.S)
+        if not m:
+            continue
+        try:
+            data = yaml.load(m.group(1), Loader=_StringDateLoader) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        if "aged_out_at" not in data or data.get("aged_out_at") in (None, ""):
+            warnings_out.append(
+                f"hoard-aged-out-at: {path.relative_to(repo_root)}: "
+                "frontmatter is missing `aged_out_at` (recommended for hoard items)"
+            )
+
+
 def check_no_todo_in_schemas(repo_root: Path, errors: list[str]) -> None:
     pat = re.compile(r"\b(TODO|FIXME|XXX)\b")
     for path in sorted((repo_root / "schemas").rglob("*.json")):
@@ -205,6 +250,11 @@ CHECKS = [
     ("todo-in-schemas",  check_no_todo_in_schemas),
 ]
 
+# Warn-only checks: collected separately, never fail the run.
+WARN_CHECKS = [
+    ("hoard-aged-out-at", check_hoard_aged_out_at),
+]
+
 
 def run(repo_root: Path) -> bool:
     all_errors: list[str] = []
@@ -214,12 +264,31 @@ def run(repo_root: Path) -> bool:
         added = len(all_errors) - before
         status = "OK" if added == 0 else f"FAIL ({added})"
         print(f"[{status}] lint:{name}")
+
+    all_warnings: list[str] = []
+    for name, fn in WARN_CHECKS:
+        before = len(all_warnings)
+        fn(repo_root, all_warnings)
+        added = len(all_warnings) - before
+        status = "OK" if added == 0 else f"WARN ({added})"
+        print(f"[{status}] lint:{name}")
+
     if all_errors:
         print()
         print(f"FAILURES PRESENT ({len(all_errors)}):")
         for e in all_errors:
             print(f"  {e}")
+        if all_warnings:
+            print()
+            print(f"WARNINGS ({len(all_warnings)}):")
+            for w in all_warnings:
+                print(f"  {w}")
         return False
+    if all_warnings:
+        print()
+        print(f"WARNINGS ({len(all_warnings)}):")
+        for w in all_warnings:
+            print(f"  {w}")
     print()
     print("ALL PASSED")
     return True

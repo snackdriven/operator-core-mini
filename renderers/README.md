@@ -61,15 +61,29 @@ python renderers/narrator_list.py  examples/operator-root-fixture --now 2026-04-
 python renderers/narrator_list.py  examples/operator-root-fixture --now 2026-04-29T14:00:00Z \
     --skin mass-effect
 python renderers/narrator_brief.py examples/operator-root-fixture --now 2026-04-29T14:00:00Z
+python renderers/narrator_brief.py examples/operator-root-fixture --now 2026-04-29T14:00:00Z \
+    --energy low-energy
 ```
 
 The fixture's expected outputs are committed alongside it as
 `expected-session-primer.md`, `expected-daily-brief.md`,
 `expected-statusline.txt`, `expected-narrator-list.md`,
-`expected-narrator-list.mass-effect.md`, and the prompt golden
-`expected-narrator-brief.prompt.md`. `tools/test_renderers.py` diffs
-actual against expected for every case and is invoked by
+`expected-narrator-list.mass-effect.md`, the prompt golden
+`expected-narrator-brief.prompt.md`, and the energy-routing golden
+`expected-narrator-brief.low-energy.prompt.md`. `tools/test_renderers.py`
+diffs actual against expected for every case and is invoked by
 `tools/validate.py` so CI catches drift.
+
+**Two-tier goldens (2026-04-29).** Voice-aware surfaces
+(`narrator-list` and any `narrator-brief` case driven by a routing
+rule) use a structural fingerprint check (ordered section headers +
+set of bolded fact ids) as the primary gate. A snapshot diff still
+prints, but with a structural match it surfaces as `[ADVISORY]`
+rather than `[FAIL]`. Deterministic surfaces (session-primer,
+daily-brief, statusline, the default narrator-brief prompt) keep the
+byte-equal snapshot check. Rationale: a one-word edit to a
+voice-rule's `do:` list shouldn't redline the suite when the fact
+set and section ordering are unchanged.
 
 ## Adding a renderer
 
@@ -102,7 +116,11 @@ identical for both surfaces — see the
   `_common.select_routing_rule(when=energy)` to pick a skin when the
   operator passes `--energy low-energy` or similar. Routing rule
   conditions are matched by exact equality today; a richer predicate
-  language is deferred until we have at least three live rules.
+  language is deferred until we have at least three live rules. The
+  fixture currently ships two routing-rules (`narrator-low-energy`
+  and `narrator-high-energy`); a regression test exercises the
+  routing-driven voice flip via
+  `narrator_brief --energy low-energy`.
 
 Both kinds are pure data — renderers consume them, never write to them.
 

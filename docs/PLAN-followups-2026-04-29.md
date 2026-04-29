@@ -1,12 +1,17 @@
 # Follow-ups plan — 2026-04-29
 
 Status: **Executed 2026-04-29**. All seven follow-ups landed in this
-repo; status markers next to each section show what shipped vs what
-was deferred. `python tools/validate.py` ends in `ALL PASSED` twice
+repo, plus the catch-all two-tier goldens, the hoard `aged_out_at`
+lint warning, and an energy-routing regression test. The upstream
+`snackdriven/operator-core-mini` ROADMAP Phase 4 row is bumped via
+[PR #1](https://github.com/snackdriven/operator-core-mini/pull/1).
+Status markers next to each section show what shipped vs what was
+deferred. `python tools/validate.py` ends in `ALL PASSED` twice
 (validator + lint, then renderer goldens). Catch-all caveats: the
 `additionalProperties: false` migration template shipped in
-`CONTRIBUTING.md`; two-tier goldens and `indexes/` remain deferred per
-the plan rationale below.
+`CONTRIBUTING.md`; two-tier goldens and the hoard `aged_out_at` warn
+shipped 2026-04-29; `indexes/` remains deferred per the plan rationale
+below.
 
 This file captures the seven follow-ups surfaced by the
 "challenge the assumptions" pass at the end of the Phase 4 renderer
@@ -630,9 +635,25 @@ top-7. They get short treatments here so they don't fall on the floor.
 * `additionalProperties: false` migration template — ✅ documented in
   [`CONTRIBUTING.md`](../CONTRIBUTING.md#additionalproperties-false-migration-template)
   (canonical four-step recipe).
-* Two-tier goldens (structural + snapshot) — ⏳ deferred. Current
-  single-tier goldens still pass; promote when a voice-rule edit
-  flips a narrator golden and we feel the pain.
+* Two-tier goldens (structural + snapshot) — ✅ **shipped 2026-04-29**.
+  `tools/test_renderers.py` now carries a `Case.voice_aware` flag.
+  Voice-aware surfaces (currently both `narrator_list` cases) extract
+  a `Fingerprint(sections, ids)` from both expected + actual; structural
+  mismatch is a real `[FAIL]`, snapshot mismatch with structural match
+  surfaces as `[ADVISORY]` and does **not** fail the run. Deterministic
+  surfaces (session-primer, daily-brief, statusline, narrator-brief
+  prompt) keep the byte-equal snapshot check.
+* Hoard `aged_out_at` lint — ✅ **shipped 2026-04-29**. New
+  `check_hoard_aged_out_at` in `tools/lint.py` walks
+  `examples/**/hoard/**/*.md`; missing `aged_out_at` produces a
+  `[WARN]` line and a trailing `WARNINGS:` block but never affects
+  exit status.
+* Energy-routing regression test — ✅ **shipped 2026-04-29**. The
+  fixture now ships a second routing-rule
+  (`narrator-high-energy-routing`, when=`high-energy`) so the
+  selector has more than one entry to disambiguate. New golden case
+  `narrator_brief --energy low-energy` exercises the routing-driven
+  voice flip (good-place → mass-effect) end to end.
 * Generated `indexes/` — ⏳ deferred until the substrate has > ~500
   files (per the plan's own explicit deferral).
 
