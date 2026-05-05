@@ -3,10 +3,11 @@
 A scaffold of "The Console" from the brainstorm: command-palette-first dashboard
 over an operator-root, with a live multi-renderer preview.
 
-Ships with a **Carry** todo app at [`/carry`](static/carry/index.html), which
-uses the same HTTP API to write `memory_class: expiring-tactical` backpack
-items, pin them, and "complete" them by demoting to Hoard (where they live
-forever — Hoard is write-once).
+Ships with a **Carry** todo app at `/carry` —
+[its own README is here](./static/carry/README.md). Carry uses this same
+HTTP API to write `memory_class: expiring-tactical` backpack items, pin
+them, and "complete" them by demoting to Hoard (where they live forever —
+Hoard is write-once).
 
 ```
 +------------------------------------------------------------------+

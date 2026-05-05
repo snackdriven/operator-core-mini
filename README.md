@@ -58,6 +58,25 @@ operator-core-schemas/
 - Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
 - Validate: `python tools/validate.py`
 
+## Surfaces
+
+Substrate-level work lives at the top of the repo (schemas, renderers,
+ingestion docs, ADRs). Surfaces — write-clients and inspectors that read or
+write the substrate — live under their own directories so the substrate
+stays small and the dependency direction is one-way (surfaces import
+substrate; substrate doesn't know surfaces exist).
+
+- [`console/`](./console/README.md) — three-pane operator console (file
+  tree + editor + live multi-renderer preview) and the **Carry** todo app
+  at [`/carry`](./console/static/carry/README.md). Stdlib-only HTTP
+  server, vanilla-JS UI, defaults to `examples/operator-root-fixture/`.
+- [`tools/expire.py`](./tools/README.md) — nightly TTL daemon. Walks
+  `backpack/`, demotes expired items to `hoard/YYYY/MM/DD/`. Wires into
+  `tools/weaver.py` or cron with one line.
+
+Add a surface by creating a sibling directory with its own README; do not
+import surface code from substrate code.
+
 ## Architecture decisions
 
 The load-bearing choices behind the substrate, with alternatives and
