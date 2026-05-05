@@ -246,6 +246,13 @@ class FreshnessSkeletonTests(unittest.TestCase):
         _validate_freshness_skeleton(skel)
 
     def test_post_write_assertion_raises_on_garbage(self):
+        # _validate_freshness_skeleton is best-effort: it silently no-ops
+        # when jsonschema isn't importable. Skip rather than asserting a
+        # contract the function explicitly disclaims in that case.
+        try:
+            import jsonschema  # noqa: F401
+        except ImportError:
+            self.skipTest("jsonschema not installed")
         with self.assertRaises(RuntimeError):
             _validate_freshness_skeleton({"version": "not-a-semver"})
 
