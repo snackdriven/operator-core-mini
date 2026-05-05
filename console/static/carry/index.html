@@ -62,10 +62,14 @@
     <li class="item">
       <button class="check" title="done — move to hoard"></button>
       <div class="body">
-        <div class="title"></div>
+        <div class="title" tabindex="0" title="click to rename"></div>
         <div class="meta"></div>
       </div>
-      <button class="pin" title="pin to top"></button>
+      <div class="row-actions">
+        <button class="snooze" title="snooze 1 week" hidden>snooze</button>
+        <button class="verify" title="still relevant — reset the clock" hidden>still on it</button>
+        <button class="pin" title="pin to top"></button>
+      </div>
     </li>
   </template>
 

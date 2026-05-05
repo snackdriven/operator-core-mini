@@ -264,25 +264,64 @@ h1 {
 }
 .item.leaving .check::after { opacity: 1; border-color: #1a201a; }
 
-/* pin button */
+/* row-action cluster (snooze / still-on-it / pin) */
 
-.pin {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.row-actions button {
   background: transparent;
   border: 0;
   color: var(--fg-mute);
   cursor: pointer;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  transition: color 160ms ease, background 160ms ease, transform 120ms ease;
+}
+.row-actions button:hover {
+  color: var(--fg);
+  background: var(--bg-3);
+}
+
+.snooze:hover { color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
+.verify:hover { color: var(--done); background: color-mix(in oklab, var(--done) 12%, transparent); }
+
+/* pin glyph */
+.pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   font-size: 16px;
   line-height: 1;
   flex: none;
-  transition: color 160ms ease, background 160ms ease, transform 120ms ease;
+  padding: 0;
 }
 .pin::before { content: "✦"; }
 .pin:hover { color: var(--pin); transform: scale(1.1); background: color-mix(in oklab, var(--pin) 8%, transparent); }
 .item.pinned .pin { color: var(--pin); }
 .item.pinned .pin::before { content: "✦"; }
+
+/* inline title editor */
+
+.title {
+  cursor: text;
+  outline: 0;
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+}
+.title:hover { background: color-mix(in oklab, var(--accent) 6%, transparent); }
+.title.editing {
+  background: var(--bg-3);
+  outline: 1px solid var(--accent);
+  cursor: text;
+}
 
 /* ---------- empty state ---------- */
 

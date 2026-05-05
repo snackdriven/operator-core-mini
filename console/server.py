@@ -39,6 +39,9 @@ STATIC_DIR = THIS_DIR / "static"
 sys.path.insert(0, str(THIS_DIR))
 import verbs  # noqa: E402
 
+# substrate primitives are in tools/; verbs.py already added that to sys.path.
+from substrate import is_expired  # noqa: E402
+
 RENDERER_IDS = [
     "session-primer",
     "daily-brief",
@@ -119,14 +122,7 @@ def build_items(operator_root: Path) -> list[dict]:
                 continue
             ttl = fm.get("ttl_seconds")
             created_at = fm.get("created_at")
-            stale = False
-            if ttl and created_at:
-                try:
-                    ca = datetime.fromisoformat(str(created_at).replace("Z", "+00:00"))
-                    age_s = (now - ca).total_seconds()
-                    stale = age_s > int(ttl)
-                except (ValueError, TypeError):
-                    pass
+            stale = is_expired(fm, now=now)
             items.append({
                 "id": fm.get("id"),
                 "path": str(path.relative_to(operator_root)),
@@ -355,6 +351,15 @@ class ConsoleHandler(BaseHTTPRequestHandler):
                     result = verbs.unpin(self.operator_root, item_id)
                 elif verb == "demote":
                     result = verbs.demote(self.operator_root, item_id, now=now_dt)
+                elif verb == "snooze":
+                    days = data.get("days", 7)
+                    result = verbs.snooze(self.operator_root, item_id, days=days, now=now_dt)
+                elif verb == "update":
+                    result = verbs.update(
+                        self.operator_root,
+                        item_id,
+                        summary=data.get("summary"),
+                    )
                 else:
                     return self._send_json(400, {"error": f"unknown verb: {verb}"})
             except Exception as exc:  # surface errors to the UI

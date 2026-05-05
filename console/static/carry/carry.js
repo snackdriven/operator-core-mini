@@ -244,6 +244,24 @@ function renderList() {
     const pinBtn = node.querySelector('.pin');
     pinBtn.addEventListener('click', () => onTogglePin(item));
 
+    const verifyBtn = node.querySelector('.verify');
+    const snoozeBtn = node.querySelector('.snooze');
+    if (item.stale) {
+      verifyBtn.hidden = false;
+      verifyBtn.addEventListener('click', () => onVerify(item));
+    }
+    snoozeBtn.hidden = false;
+    snoozeBtn.addEventListener('click', () => onSnooze(item));
+
+    const titleEl = node.querySelector('.title');
+    titleEl.addEventListener('click', (e) => beginEditTitle(item, titleEl, e));
+    titleEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !titleEl.classList.contains('editing')) {
+        e.preventDefault();
+        beginEditTitle(item, titleEl);
+      }
+    });
+
     list.appendChild(node);
   }
 }
@@ -306,6 +324,90 @@ async function onTogglePin(item) {
   } else {
     setStatus(res.body && (res.body.message || res.body.error) || 'pin failed', 'warn');
   }
+}
+
+async function onVerify(item) {
+  const res = await verb('verify', item.id);
+  if (res.body && res.body.ok) {
+    setStatus('still on it — clock reset', 'ok');
+    await refresh();
+  } else {
+    setStatus(res.body && (res.body.message || res.body.error) || 'verify failed', 'warn');
+  }
+}
+
+async function onSnooze(item) {
+  // v0: one-week snooze. Future: a small picker (1d / 1w / 2w).
+  const r = await fetch('/api/verb', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ verb: 'snooze', id: item.id, days: 7 }),
+  });
+  const body = await r.json();
+  if (body && body.ok) {
+    setStatus('snoozed 1 week', 'ok');
+    await refresh();
+  } else {
+    setStatus((body && (body.message || body.error)) || 'snooze failed', 'warn');
+  }
+}
+
+function beginEditTitle(item, el, ev) {
+  if (el.classList.contains('editing')) return;
+  if (ev) ev.stopPropagation();
+  el.classList.add('editing');
+  el.contentEditable = 'plaintext-only';
+  // Some browsers don't support plaintext-only; fall back.
+  if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true';
+  el.focus();
+  // Select all text for easy replacement.
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  const original = el.textContent;
+  let committed = false;
+
+  const finish = async (commit) => {
+    if (committed) return;
+    committed = true;
+    el.classList.remove('editing');
+    el.contentEditable = 'false';
+    const next = (el.textContent || '').trim();
+    if (!commit || !next || next === original) {
+      el.textContent = original;
+      return;
+    }
+    // optimistic update
+    el.textContent = next;
+    const r = await fetch('/api/verb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verb: 'update', id: item.id, summary: next }),
+    });
+    const body = await r.json();
+    if (body && body.ok) {
+      setStatus('renamed', 'ok');
+      await refresh();
+    } else {
+      el.textContent = original;
+      setStatus((body && (body.message || body.error)) || 'rename failed', 'warn');
+    }
+  };
+
+  el.addEventListener('blur', () => finish(true), { once: true });
+  el.addEventListener('keydown', function onKey(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      el.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      el.removeEventListener('keydown', onKey);
+      finish(false);
+    }
+  });
 }
 
 // ---------- bootstrap ----------

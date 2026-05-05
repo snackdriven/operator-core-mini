@@ -55,10 +55,15 @@ Open `http://127.0.0.1:8765/` (or the port you passed). The todo app is at
   | `verify` | sets `created_at` on the matching item; resets TTL math             |
   | `pin`    | sets `freshness_class: pinned`                                      |
   | `unpin`  | reverts `freshness_class` to `current` (aging takes over)           |
+  | `snooze` | resets `created_at`, ensures `ttl_seconds >= days*86400`. Defaults to 7d. |
+  | `update` | edits mutable fields in place (v0: `summary` only)                  |
   | `demote` | stamps `aged_out_at`, moves the file to `hoard/YYYY/MM/DD/<name>.md`|
 
-  All writes go through `_atomic_write` (tempfile + `os.replace`) and respect
+  All writes go through `atomic_write` (tempfile + `os.replace`) and respect
   the YAML frontmatter shape used by `renderers/_common.py:load_frontmatter`.
+  Shared primitives live in [`tools/substrate.py`](../tools/substrate.py) so
+  this module and the nightly TTL daemon ([`tools/expire.py`](../tools/expire.py))
+  agree on what "expired" means and on how to perform a demote.
 
 * **`static/index.html` + `style.css`** — 3-pane CSS-grid shell.
 
@@ -91,16 +96,47 @@ adapts" (ADR 0003) made tactile.
 * Renderers are subprocessed; they remain pure (read-only) per ADR 0003.
 * Bind defaults to `127.0.0.1`. Pass `--host 0.0.0.0` knowingly.
 
+## Nightly TTL daemon
+
+Carry items default to `ttl_seconds: 604800` (1 week). Without something
+moving the cursor forward, expired items would just accumulate in `current/`
+amber-tinted but never actually leave. [`tools/expire.py`](../tools/expire.py)
+is that something:
+
+```bash
+python tools/expire.py /path/to/operator-root              # apply
+python tools/expire.py /path/to/operator-root --dry-run    # preview only
+python tools/expire.py /path/to/operator-root --verbose    # also list kept items
+python tools/expire.py /path/to/operator-root --now ISO    # pin clock for tests
+```
+
+Behavior: walks `backpack/**/*.md` (skipping `_replaced/`); demotes items whose
+`created_at + ttl_seconds < now`; never touches pinned items; never touches
+items without `ttl_seconds`. Idempotent (second run does nothing).
+
+Wire it into your existing `tools/weaver.py` schedule for nightly runs:
+
+```python
+import subprocess, sys
+schedule.every().day.at("23:55").do(
+    lambda: subprocess.run([sys.executable, "tools/expire.py", str(OP_ROOT)])
+)
+```
+
+Or use cron / a launchd LaunchAgent / systemd timer — the script is plain CLI.
+
 ## Not yet wired (intentional v0 cuts)
 
 * `>replace <id>` — drafts a successor file with `replaces:` set. Currently
-  only the four safe verbs ship; `replace` will land alongside a templated
+  only the safe verbs ship; `replace` will land alongside a templated
   diff editor.
 * CodeMirror / schema-aware editor. v0 uses a styled `<textarea>`. Frontmatter
   validation against `schemas/backpack-item.schema.json` is on the roadmap.
 * Live FS watcher → push tree refreshes via SSE/WebSocket. Today the client
   re-fetches `/api/tree` and `/api/items` after every verb or save.
 * Promote-to-doctrine, replaces-chain visualizer, consent-gate badge in tree.
+* Snooze duration picker. Today snooze is fixed at 1 week from Carry; the
+  underlying verb already accepts arbitrary `days`.
 
 ## Hotkeys
 
