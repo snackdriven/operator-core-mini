@@ -14,6 +14,9 @@ toolchain. They exist so the schemas and the recommended layout in
 | `test_renderers.py` | Golden-output tests for `renderers/`. Two-tier: deterministic surfaces (session-primer, daily-brief, statusline, narrator-brief prompt) must match snapshots byte-for-byte; voice-aware surfaces (narrator-list, energy-routed narrator-brief) require the structural fingerprint (section order + bolded fact ids) to match while snapshot drift surfaces as `[ADVISORY]`. |
 | `migrate.py` | Convert a legacy single-file `backpack.json` into the per-item markdown-with-frontmatter layout. Writes a freshness-policy skeleton. |
 | `bp_build.py` | Walk the operator root and regenerate the machine-written indexes (`backpack/_index.json`, `doctrine/doctrine.lock.json`, `hoard/_hoard.jsonl`). |
+| `substrate.py` | Shared mutation primitives — frontmatter I/O, atomic write, `find_by_id`, `demote_to_hoard`, `is_expired`. Imported by `console/verbs.py` and `tools/expire.py` so they agree on every load-bearing definition. |
+| `expire.py` | Nightly TTL daemon. Walks `backpack/**/*.md`; demotes any item where `created_at + ttl_seconds < now` to `hoard/YYYY/MM/DD/`. Skips pinned items and items without `ttl_seconds`. Idempotent. CLI: `--dry-run`, `--verbose`, `--now ISO`. |
+| `test_expire.py` | 14 unittests over `expire.py` + `substrate.is_expired`: dry-run, pinned exemption, year/month/day path, idempotency, garbage-in handling. |
 
 ## Usage — validate + lint
 

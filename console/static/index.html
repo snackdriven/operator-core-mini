@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Operator Console</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">operator console</div>
+    <div class="controls">
+      <label>energy
+        <select id="energy">
+          <option value="">—</option>
+          <option value="low-energy">low</option>
+          <option value="high-energy">high</option>
+        </select>
+      </label>
+      <label>skin
+        <select id="skin">
+          <option value="">default</option>
+          <option value="good-place">good-place</option>
+          <option value="mass-effect">mass-effect</option>
+        </select>
+      </label>
+      <label>now
+        <input id="now" type="text" placeholder="ISO-8601 (blank = real time)" size="22" />
+      </label>
+      <span class="hint">⌘K / Ctrl+K — palette</span>
+      <span class="status" id="status">ready</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <aside id="tree" class="pane tree">
+      <div class="pane-title">substrate</div>
+      <div id="tree-body" class="scroller"></div>
+    </aside>
+
+    <section class="pane editor">
+      <div class="pane-title">
+        <span id="editor-path">no file</span>
+        <span class="actions">
+          <button id="save-btn" disabled>save (⌘S)</button>
+        </span>
+      </div>
+      <textarea id="editor" spellcheck="false" placeholder="select a file from the tree"></textarea>
+    </section>
+
+    <section class="pane preview">
+      <div class="pane-title">
+        <nav id="renderer-tabs" class="tabs"></nav>
+        <span class="actions">
+          <button id="rerender-btn">re-render</button>
+        </span>
+      </div>
+      <pre id="renderer-output" class="scroller">renderers idle</pre>
+    </section>
+  </main>
+
+  <div id="palette-overlay" class="overlay" hidden>
+    <div class="palette">
+      <input id="palette-input" type="text"
+             placeholder="> verb  |  @filter  |  #tag  |  type to search items"
+             autocomplete="off" />
+      <div id="palette-results" class="palette-results"></div>
+      <div class="palette-help">
+        verbs: <code>&gt;verify</code> <code>&gt;pin</code> <code>&gt;unpin</code>
+        <code>&gt;demote</code> <code>&gt;render &lt;id&gt;</code>
+        <code>&gt;skin &lt;id&gt;</code> <code>&gt;energy &lt;level&gt;</code>
+        · filters: <code>@today</code> <code>@stale</code> <code>@aged</code>
+        <code>@area:work</code> <code>#qa</code>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/palette.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
