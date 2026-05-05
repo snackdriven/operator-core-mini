@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>carry</title>
+  <link rel="stylesheet" href="/static/carry/carry.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="bag" aria-hidden="true"></span>
+      <h1>carry</h1>
+    </div>
+    <div class="weight" id="weight" title="how full your bag is">
+      <span class="weight-bar"><span class="weight-fill" id="weight-fill"></span></span>
+      <span class="weight-num" id="weight-num">0/8</span>
+    </div>
+  </header>
+
+  <form class="add" id="add-form">
+    <input
+      id="add-input"
+      type="text"
+      placeholder="what are you carrying?"
+      autocomplete="off"
+      autofocus
+    />
+    <select id="add-area" title="area">
+      <option value="life">life</option>
+      <option value="work">work</option>
+      <option value="meta">meta</option>
+      <option value="assistant">assistant</option>
+      <option value="identity">identity</option>
+    </select>
+    <select id="add-ttl" title="how long it should sit in the bag">
+      <option value="86400">1 day</option>
+      <option value="604800" selected>1 week</option>
+      <option value="1209600">2 weeks</option>
+      <option value="2592000">30 days</option>
+    </select>
+    <button type="submit">add</button>
+  </form>
+
+  <main>
+    <ul id="list" class="list"></ul>
+    <div id="empty" class="empty" hidden>
+      <p>your bag is empty.</p>
+      <p class="dim">nice.</p>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span class="dim" id="status">loading…</span>
+    <span class="dim hint">
+      items live in <code>backpack/current/</code>.
+      <span class="check-icon" aria-hidden="true"></span> moves them to <code>hoard/</code>. nothing is deleted.
+    </span>
+  </footer>
+
+  <template id="row-template">
+    <li class="item">
+      <button class="check" title="done — move to hoard"></button>
+      <div class="body">
+        <div class="title"></div>
+        <div class="meta"></div>
+      </div>
+      <button class="pin" title="pin to top"></button>
+    </li>
+  </template>
+
+  <script src="/static/carry/carry.js"></script>
+</body>
+</html>

@@ -3,6 +3,11 @@
 A scaffold of "The Console" from the brainstorm: command-palette-first dashboard
 over an operator-root, with a live multi-renderer preview.
 
+Ships with a **Carry** todo app at [`/carry`](static/carry/index.html), which
+uses the same HTTP API to write `memory_class: expiring-tactical` backpack
+items, pin them, and "complete" them by demoting to Hoard (where they live
+forever — Hoard is write-once).
+
 ```
 +------------------------------------------------------------------+
 | operator console     energy [ ]  skin [ ]  now [ ]  ⌘K  status  |
@@ -25,7 +30,8 @@ python console/server.py /path/to/your/operator-root  # serve any operator-root
 python console/server.py /path/to/root --port 9000
 ```
 
-Open `http://127.0.0.1:8765/` (or the port you passed).
+Open `http://127.0.0.1:8765/` (or the port you passed). The todo app is at
+`http://127.0.0.1:8765/carry`.
 
 ## Architecture
 

@@ -274,6 +274,8 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         if path == "/" or path == "/index.html":
             return self._send_static(STATIC_DIR / "index.html")
+        if path == "/carry" or path == "/carry/":
+            return self._send_static(STATIC_DIR / "carry" / "index.html")
         if path.startswith("/static/"):
             rel = path[len("/static/"):]
             return self._send_static(STATIC_DIR / rel)
