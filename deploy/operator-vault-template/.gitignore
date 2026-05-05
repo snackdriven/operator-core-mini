@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# substrate-local artifacts
+backpack/_index.json
+doctrine/doctrine.lock.json
+hoard/_hoard.jsonl
+hoard/_ingestion-events.jsonl

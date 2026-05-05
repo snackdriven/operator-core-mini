@@ -73,6 +73,11 @@ substrate; substrate doesn't know surfaces exist).
 - [`tools/expire.py`](./tools/README.md) — nightly TTL daemon. Walks
   `backpack/`, demotes expired items to `hoard/YYYY/MM/DD/`. Wires into
   `tools/weaver.py` or cron with one line.
+- [`deploy/`](./deploy/README.md) — runbook + templates for using a
+  separate private `operator-vault` repo as your real data home, with
+  the TTL daemon and a daily render running on GitHub Actions.
+  [`tools/bootstrap_vault.py`](./tools/bootstrap_vault.py) initializes
+  a fresh vault tree.
 
 Add a surface by creating a sibling directory with its own README; do not
 import surface code from substrate code.

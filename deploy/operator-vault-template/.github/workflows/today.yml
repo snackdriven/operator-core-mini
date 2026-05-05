@@ -1,0 +1,79 @@
+# Morning render: produce today.md / today.narrator-prompt.md /
+# today.statusline.txt at the vault root, commit, push.
+#
+# These are *static snapshots* of the renderer outputs against the current
+# state. Browse them via GitHub's repo UI (markdown renders inline) on
+# desktop or the GitHub mobile app — no Pages, no separate viewer.
+#
+# Source renderers:
+#   operator-core-mini/renderers/daily_brief.py
+#   operator-core-mini/renderers/narrator_brief.py
+#   operator-core-mini/renderers/statusline.py
+#
+# Wiring: snackdriven/operator-core-mini/deploy/README.md
+
+name: today
+
+on:
+  schedule:
+    # 12:30 UTC = 7:30 CDT, 6:30 CST. Pick your morning window.
+    - cron: "30 12 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: today
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vault
+        uses: actions/checkout@v4
+        with:
+          path: vault
+          fetch-depth: 1
+
+      - name: Checkout operator-core-mini
+        uses: actions/checkout@v4
+        with:
+          repository: snackdriven/operator-core-mini
+          path: substrate
+          ref: main
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install runtime deps
+        run: pip install pyyaml
+
+      - name: Render daily-brief
+        working-directory: vault
+        run: python ../substrate/renderers/daily_brief.py . > today.md
+
+      - name: Render narrator-brief (prompt artifact)
+        working-directory: vault
+        run: python ../substrate/renderers/narrator_brief.py . > today.narrator-prompt.md
+
+      - name: Render statusline
+        working-directory: vault
+        run: python ../substrate/renderers/statusline.py . > today.statusline.txt
+
+      - name: Commit + push if anything changed
+        working-directory: vault
+        run: |
+          git config user.email "weaver@snackdriven.dev"
+          git config user.name  "weaver"
+          git add today.md today.narrator-prompt.md today.statusline.txt
+          if git diff --cached --quiet; then
+            echo "no changes — renders are byte-identical to last run"
+            exit 0
+          fi
+          git commit -m "today: morning render [skip ci]"
+          git push
