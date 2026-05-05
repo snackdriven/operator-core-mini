@@ -1,0 +1,71 @@
+# Nightly TTL daemon for the operator-vault.
+#
+# Sweeps backpack/ and demotes any item where created_at + ttl_seconds < now
+# to hoard/YYYY/MM/DD/<basename> with aged_out_at stamped. Pinned items and
+# items without ttl_seconds are exempt. The daemon is idempotent — re-runs
+# are safe and produce empty diffs.
+#
+# Source: https://github.com/snackdriven/operator-core-mini/blob/main/tools/expire.py
+# Wiring: snackdriven/operator-core-mini/deploy/README.md
+
+name: expire
+
+on:
+  schedule:
+    # 23:55 UTC nightly. Pick a quiet hour for your timezone.
+    - cron: "55 23 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: expire
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vault
+        uses: actions/checkout@v4
+        with:
+          path: vault
+          fetch-depth: 1
+
+      - name: Checkout operator-core-mini
+        uses: actions/checkout@v4
+        with:
+          repository: snackdriven/operator-core-mini
+          path: substrate
+          ref: main
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install runtime deps
+        run: pip install pyyaml
+
+      - name: Run TTL daemon (dry-run first, for logs)
+        working-directory: vault
+        run: python ../substrate/tools/expire.py . --dry-run --verbose
+
+      - name: Run TTL daemon (apply)
+        working-directory: vault
+        run: python ../substrate/tools/expire.py . --verbose
+
+      - name: Commit + push if anything moved
+        working-directory: vault
+        run: |
+          git config user.email "weaver@snackdriven.dev"
+          git config user.name  "weaver"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no changes — nothing to commit"
+            exit 0
+          fi
+          git commit -m "weaver: nightly TTL sweep [skip ci]"
+          git push
