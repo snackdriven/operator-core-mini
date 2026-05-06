@@ -169,12 +169,17 @@ def run_renderer(
     if skin and renderer_id in VOICE_AWARE:
         cmd += ["--skin", skin]
     try:
+        import os
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
         proc = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=timeout,
             check=False,
+            env=env,
         )
     except subprocess.TimeoutExpired:
         return False, f"renderer {renderer_id} timed out after {timeout}s"

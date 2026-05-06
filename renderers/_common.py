@@ -18,6 +18,15 @@ from __future__ import annotations
 
 import json
 import re
+import sys
+
+# On Windows, stdout may default to a narrow codec (e.g. cp1252) that can't
+# encode Unicode characters like →. Reconfigure to UTF-8 so all renderers
+# can emit arbitrary Unicode without crashing.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path

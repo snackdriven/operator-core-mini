@@ -230,6 +230,8 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   padding-top: 14vh;
   z-index: 50;
 }
+/* override: CSS display:flex beats the HTML hidden attribute without this */
+.overlay[hidden] { display: none; }
 .palette {
   width: min(640px, 90vw);
   background: var(--bg-2);

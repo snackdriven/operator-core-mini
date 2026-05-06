@@ -47,7 +47,6 @@ operator-core/
 │   │   ├── scratch-pad.md
 │   │   ├── qa-brain.md
 │   │   ├── narrator.md
-│   │   ├── chronicle.md
 │   │   └── life-systems.md
 │   └── decisions/
 │       ├── 0001-backpack-is-active-carry-state.md
