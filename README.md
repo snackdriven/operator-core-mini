@@ -87,3 +87,7 @@ consequences:
 - [ADR 0003](./docs/decisions/0003-renderers-over-one-truth-layer.md) — Renderers over one truth layer; not one truth per surface.
 - [ADR 0004](./docs/decisions/0004-consent-posture-is-doctrine.md) — Consent posture is Doctrine, not infrastructure.
 - [ADR 0005](./docs/decisions/0005-voice-rules-and-routing-rules.md) — Voice rules and routing rules are Doctrine, selected by contract.
+
+## Commits and releases
+
+See [RELEASE.md](RELEASE.md) for Commitizen commands, SemVer and changelog maintenance.
