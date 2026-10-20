@@ -2,6 +2,15 @@
 
 All notable changes, reconstructed from git history on 2026-06-16 (no prior changelog existed). Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and numbered releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- Commitizen commit prompts, SemVer release preparation and CI checks for commit titles and curated release notes.
+
 ## 2026-05-06
 
 ### Added
