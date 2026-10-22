@@ -77,6 +77,10 @@ substrate; substrate doesn't know surfaces exist).
 Add a surface by creating a sibling directory with its own README; do not
 import surface code from substrate code.
 
+The [personal opportunity radar](opportunity-radar/README.md) is an isolated,
+read-only snapshot surface with a runnable fixture and visible integration
+checklist. Live collectors, scheduling, and delivery remain unconnected.
+
 ## Architecture decisions
 
 The load-bearing choices behind the substrate, with alternatives and
